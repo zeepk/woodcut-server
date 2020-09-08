@@ -30,26 +30,11 @@ router.get('/:username', getUser, (req, res) => {
 	res.json(res.user);
 });
 
-// // Creating one
-// router.post('/', async (req, res) => {
-// 	const user = new User({
-// 		username: req.body.username.split(' ').join('+'),
-// 		rsn: req.body.username,
-// 	});
-// 	try {
-// 		const newUser = await user.save();
-// 		res.status(201).json(newUser);
-// 	} catch (err) {
-// 		res.status(400).json({ message: err.message });
-// 	}
-// });
-
 // Updates the xp gain
 router.patch('/delta/:username', getUser, async (req, res) => {
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
 	if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
 		for (var i = 0; i < data.length; i++) {
-			console.log(data[i]);
 			const stat = res.user[0].statRecords[0].stats[i];
 			stat[stat.length - 1] =
 				+data[i][data[i].length - 1] - +stat[stat.length - 2];
@@ -61,10 +46,12 @@ router.patch('/delta/:username', getUser, async (req, res) => {
 			'Most recent record is not from today. Data needs to be updated.'
 		);
 	}
+	res.user[0].markModified('statRecords');
 	try {
 		const updatedUser = await res.user[0].save();
 		res.json(updatedUser);
 	} catch (err) {
+		console.log('Error saving in /delta API endpoint');
 		res.status(400).json({ message: err.message });
 	}
 });
