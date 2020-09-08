@@ -34,6 +34,7 @@ router.get('/:username', getUser, (req, res) => {
 
 // Updates the xp gain
 router.patch('/delta/:username', getUser, async (req, res) => {
+	res.header('Access-Control-Allow-Origin', '*');
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
 	if (!res.user[0]) {
 		console.log('user not found...');
@@ -53,12 +54,10 @@ router.patch('/delta/:username', getUser, async (req, res) => {
 			});
 			try {
 				const newUser = await user.save();
-				res
-					.status(200)
-					.json({
-						message: 'User not found, created successfully!',
-						data: data,
-					});
+				res.status(200).json({
+					message: 'User not found, created successfully!',
+					data: data,
+				});
 			} catch (err) {
 				res
 					.status(400)
