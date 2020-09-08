@@ -33,7 +33,7 @@ router.get('/:username', getUser, (req, res) => {
 });
 
 // Updates the xp gain
-router.patch('/delta/:username', getUser, async (req, res) => {
+router.put('/delta/:username', getUser, async (req, res) => {
 	res.header('Access-Control-Allow-Origin', '*');
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
 	if (!res.user[0]) {
