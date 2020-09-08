@@ -3,6 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const fetch = require('node-fetch');
 const proxyurl = 'https://api.allorigins.win/get?url=';
+const axios = require('axios');
+const API_URL = process.env.API_URL;
 
 const apiCheck = async (username) => {
 	const data = await fetch(
@@ -33,13 +35,50 @@ router.get('/:username', getUser, (req, res) => {
 // Updates the xp gain
 router.patch('/delta/:username', getUser, async (req, res) => {
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	if (!res.user[0]) {
+		console.log('user not found...');
+		if (data.length > 5) {
+			for (const i in data) {
+				data[i].push(0);
+			}
+			const user = new User({
+				username: req.body.username.split(' ').join('+'),
+				rsn: req.body.username,
+				lastUpdated: Date.now(),
+				statRecords: [
+					{
+						stats: data,
+					},
+				],
+			});
+			try {
+				const newUser = await user.save();
+				res
+					.status(200)
+					.json({
+						message: 'User not found, created successfully!',
+						data: data,
+					});
+			} catch (err) {
+				res
+					.status(400)
+					.json({ message: 'User not found, unable to create.', data: data });
+			}
+			return;
+		} else {
+			res
+				.status(400)
+				.json({ message: 'user not found in hiscores', data: data });
+		}
+		return;
+	}
 	if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
 		for (var i = 0; i < data.length; i++) {
 			const stat = res.user[0].statRecords[0].stats[i];
 			stat[stat.length - 1] =
 				+data[i][data[i].length - 1] - +stat[stat.length - 2];
 		}
-
+		res.user[0].statRecords[0].date = new Date();
 		console.log('Updating deltas');
 	} else {
 		console.log(
@@ -54,6 +93,43 @@ router.patch('/delta/:username', getUser, async (req, res) => {
 		console.log('Error saving in /delta API endpoint');
 		res.status(400).json({ message: err.message });
 	}
+});
+
+// Updates the xp gain
+router.patch('/massupdate', getUser, async (req, res) => {
+	// const users = User.find({});
+	// console.log(users);
+	const usersUpdated = [];
+	User.find({}, function (err, users) {
+		for (const user in users) {
+			console.log(users[user].username);
+			(async function () {
+				const data = await apiCheck(users[user].username.split(' ').join('+'));
+				for (const i in data) {
+					data[i].push(0);
+				}
+				if (
+					users[user].lastUpdated.toDateString() === new Date().toDateString()
+				) {
+					users[user].statRecords[0].stats = data;
+					users[user].statRecords[0].date = new Date();
+					console.log(
+						'Overwrote data in mass update, daily gains lost for user: ' +
+							users[user].username
+					);
+				} else {
+					users[user].statRecords.unshift({ stats: data });
+					console.log('New day addition for user: ' + users[user].username);
+				}
+				users[user].lastUpdated = new Date();
+				usersUpdated.push('users[user].username');
+				const updatedUser = await users[user].save();
+			})();
+		}
+	});
+	res
+		.status(200)
+		.json({ message: 'Wow haha nice', users_updated: usersUpdated });
 });
 
 // Updating One
