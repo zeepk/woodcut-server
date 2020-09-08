@@ -113,3 +113,7 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node
 config/config.env
+/node_modules
+npm-debug.log
+.DS_Store
+/*.env
