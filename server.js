@@ -15,4 +15,6 @@ app.use(express.json());
 const usersRouter = require('./routes/users');
 app.use('/users', usersRouter);
 
-app.listen(8000, () => console.log('Server started on port 8000'));
+app.listen(process.env.PORT || 8000, () =>
+	console.log('Server started on port 8000')
+);
