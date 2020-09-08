@@ -1,7 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const fetch = require('node-fetch');
+const proxyurl = 'https://api.allorigins.win/get?url=';
 
+const apiCheck = async (username) => {
+	const data = await fetch(
+		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
+	)
+		.then((res) => res.json())
+		.then((res) => {
+			// console.log(res.contents.split('\n').map((record) => record.split(',')));
+			return res.contents.split('\n').map((record) => record.split(','));
+		});
+	return data;
+};
 // Getting all
 router.get('/', async (req, res) => {
 	try {
@@ -32,12 +45,22 @@ router.post('/', async (req, res) => {
 });
 
 // Updating One
-router.patch('/:id', getUser, async (req, res) => {
-	if (req.body.username != null) {
-		res.user.username = req.body.username;
+router.patch('/:username', getUser, async (req, res) => {
+	// if (req.body.username != null) {
+	// 	res.user.username = req.body.username;
+	// }
+	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
+		res.user[0].statRecords[0].stats = data;
+		res.user[0].statRecords[0].date = new Date();
+		console.log('Same day update');
+	} else {
+		res.user[0].statRecords.unshift({ stats: data });
+		console.log('New day addition');
 	}
+	res.user[0].lastUpdated = new Date();
 	try {
-		const updatedUser = await res.user.save();
+		const updatedUser = await res.user[0].save();
 		res.json(updatedUser);
 	} catch (err) {
 		res.status(400).json({ message: err.message });
@@ -54,7 +77,29 @@ router.delete('/:id', getUser, async (req, res) => {
 	}
 });
 
+// Initialize
+router.post('/init', async (req, res) => {
+	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	const user = new User({
+		username: req.body.username.split(' ').join('+'),
+		rsn: req.body.username,
+		lastUpdated: Date.now(),
+		statRecords: [
+			{
+				stats: data,
+			},
+		],
+	});
+	try {
+		const newUser = await user.save();
+		res.status(201).json(newUser);
+	} catch (err) {
+		res.status(400).json({ message: err.message });
+	}
+});
+
 async function getUser(req, res, next) {
+	console.log(req.params.username);
 	let user;
 	try {
 		user = await User.find({ username: req.params.username });

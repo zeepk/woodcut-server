@@ -9,9 +9,10 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
+		"dotenv": "^8.2.0",
 		"express": "^4.16.4",
 		"mongoose": "^5.5.7",
-		"dotenv": "^8.2.0"
+		"node-fetch": "^2.6.1"
 	},
 	"devDependencies": {
 		"nodemon": "^1.19.0"
