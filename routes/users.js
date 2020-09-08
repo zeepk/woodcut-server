@@ -5,16 +5,7 @@ const fetch = require('node-fetch');
 const proxyurl = 'https://api.allorigins.win/get?url=';
 const axios = require('axios');
 const API_URL = process.env.API_URL;
-app.use(function (req, res, next) {
-	res.header('Access-Control-Allow-Origin', '*');
 
-	res.header(
-		'Access-Control-Allow-Headers',
-		'Origin, X-Requested-With, Content-Type, Accept'
-	);
-
-	next();
-});
 const apiCheck = async (username) => {
 	const data = await fetch(
 		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
