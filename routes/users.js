@@ -30,15 +30,40 @@ router.get('/:username', getUser, (req, res) => {
 	res.json(res.user);
 });
 
-// Creating one
-router.post('/', async (req, res) => {
-	const user = new User({
-		username: req.body.username.split(' ').join('+'),
-		rsn: req.body.username,
-	});
+// // Creating one
+// router.post('/', async (req, res) => {
+// 	const user = new User({
+// 		username: req.body.username.split(' ').join('+'),
+// 		rsn: req.body.username,
+// 	});
+// 	try {
+// 		const newUser = await user.save();
+// 		res.status(201).json(newUser);
+// 	} catch (err) {
+// 		res.status(400).json({ message: err.message });
+// 	}
+// });
+
+// Updates the xp gain
+router.patch('/delta/:username', getUser, async (req, res) => {
+	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
+		for (var i = 0; i < data.length; i++) {
+			console.log(data[i]);
+			const stat = res.user[0].statRecords[0].stats[i];
+			stat[stat.length - 1] =
+				+data[i][data[i].length - 1] - +stat[stat.length - 2];
+		}
+
+		console.log('Updating deltas');
+	} else {
+		console.log(
+			'Most recent record is not from today. Data needs to be updated.'
+		);
+	}
 	try {
-		const newUser = await user.save();
-		res.status(201).json(newUser);
+		const updatedUser = await res.user[0].save();
+		res.json(updatedUser);
 	} catch (err) {
 		res.status(400).json({ message: err.message });
 	}
@@ -50,6 +75,9 @@ router.patch('/:username', getUser, async (req, res) => {
 	// 	res.user.username = req.body.username;
 	// }
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	for (const i in data) {
+		data[i].push(0);
+	}
 	if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
 		res.user[0].statRecords[0].stats = data;
 		res.user[0].statRecords[0].date = new Date();
@@ -80,6 +108,9 @@ router.delete('/:id', getUser, async (req, res) => {
 // Initialize
 router.post('/init', async (req, res) => {
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	for (const i in data) {
+		data[i].push(0);
+	}
 	const user = new User({
 		username: req.body.username.split(' ').join('+'),
 		rsn: req.body.username,
