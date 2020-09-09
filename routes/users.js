@@ -101,25 +101,27 @@ router.patch('/massupdate', getUser, async (req, res) => {
 	const usersUpdated = [];
 	User.find({}, function (err, users) {
 		for (const user in users) {
-			console.log(users[user].username);
 			(async function () {
 				const data = await apiCheck(users[user].username.split(' ').join('+'));
 				for (const i in data) {
 					data[i].push(0);
 				}
-				if (
-					users[user].lastUpdated.toDateString() === new Date().toDateString()
-				) {
-					users[user].statRecords[0].stats = data;
-					users[user].statRecords[0].date = new Date();
-					console.log(
-						'Overwrote data in mass update, daily gains lost for user: ' +
-							users[user].username
-					);
-				} else {
-					users[user].statRecords.unshift({ stats: data });
-					console.log('New day addition for user: ' + users[user].username);
-				}
+				console.log(users[user].lastUpdated.getHours());
+				// if (
+				// 	users[user].lastUpdated.toDateString() === new Date().toDateString()
+				// ) {
+				// 	// same day, does not need to be updated
+				// 	users[user].statRecords[0].stats = data;
+				// 	users[user].statRecords[0].date = new Date();
+				// 	console.log(
+				// 		'Overwrote data in mass update, daily gains lost for user: ' +
+				// 			users[user].username
+				// 	);
+				// } else {
+				// new day, needs to be updated
+				users[user].statRecords.unshift({ stats: data });
+				console.log('New day addition for user: ' + users[user].username);
+				// }
 				users[user].lastUpdated = new Date();
 				usersUpdated.push('users[user].username');
 				const updatedUser = await users[user].save();
