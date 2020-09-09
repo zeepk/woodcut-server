@@ -103,6 +103,12 @@ router.put('/massupdate', getUser, async (req, res) => {
 		for (const user in users) {
 			(async function () {
 				const data = await apiCheck(users[user].username.split(' ').join('+'));
+				for (var i = 0; i < data.length; i++) {
+					const stat = res.user[0].statRecords[0].stats[i];
+					stat[stat.length - 1] =
+						+data[i][data[i].length - 1] - +stat[stat.length - 2];
+				}
+				res.user[0].statRecords[0].date = new Date();
 				for (const i in data) {
 					data[i].push(0);
 				}
@@ -124,6 +130,7 @@ router.put('/massupdate', getUser, async (req, res) => {
 				// }
 				users[user].lastUpdated = new Date();
 				usersUpdated.push('users[user].username');
+				res.user[0].markModified('statRecords');
 				const updatedUser = await users[user].save();
 			})();
 		}
