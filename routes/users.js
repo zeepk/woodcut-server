@@ -95,7 +95,7 @@ router.put('/delta/:username', getUser, async (req, res) => {
 });
 
 // Updates the xp gain
-router.patch('/massupdate', getUser, async (req, res) => {
+router.put('/massupdate', getUser, async (req, res) => {
 	// const users = User.find({});
 	// console.log(users);
 	const usersUpdated = [];
