@@ -27,6 +27,51 @@ router.get('/', async (req, res) => {
 	}
 });
 
+// Getting top 10 xp gain
+router.get('/topten', async (req, res) => {
+	try {
+		(async function () {
+			const users = await User.find();
+			// updating all users, this might make it slower idk
+			await (function () {
+				for (const user in users) {
+					(async function () {
+						const data = await apiCheck(
+							users[user].username.split(' ').join('+')
+						);
+						for (var i = 0; i < data.length; i++) {
+							const stat = users[user].statRecords[0].stats[i];
+							stat[stat.length - 1] =
+								+data[i][data[i].length - 1] - +stat[stat.length - 2];
+						}
+						users[user].statRecords[0].date = new Date();
+						users[user].markModified('statRecords');
+						console.log(users[user].username);
+						const newUser = await users[user].save();
+					})();
+				}
+			})();
+			// then sorting to find top ten
+			const updatedUsers = await User.find();
+
+			const topten = updatedUsers
+				.sort(
+					(a, b) => b.statRecords[0].stats[0][3] - a.statRecords[0].stats[0][3]
+				)
+				.map((user) => {
+					return {
+						username: user.username,
+						rsn: user.rsn,
+						xpgain: user.statRecords[0].stats[0][3],
+					};
+				});
+			res.json(topten);
+		})();
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
+
 // Getting One
 router.get('/:username', getUser, (req, res) => {
 	res.json(res.user);
