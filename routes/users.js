@@ -6,18 +6,18 @@ const proxyurl = 'https://api.allorigins.win/get?url=';
 const axios = require('axios');
 const API_URL = process.env.API_URL;
 
+// check user against offical runescape hiscores
 const apiCheck = async (username) => {
 	const data = await fetch(
 		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
 	)
 		.then((res) => res.json())
 		.then((res) => {
-			// console.log(res.contents.split('\n').map((record) => record.split(',')));
 			return res.contents.split('\n').map((record) => record.split(','));
 		});
 	return data;
 };
-// Getting all
+// get all records for all users
 router.get('/', async (req, res) => {
 	try {
 		const users = await User.find();
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 	}
 });
 
-// Getting top 10 xp gain
+// update xp for all and get top 10 xp gain
 router.get('/topten', async (req, res) => {
 	try {
 		(async function () {
@@ -73,11 +73,12 @@ router.get('/topten', async (req, res) => {
 	}
 });
 
-// Getting One
+// get all records for one user
 router.get('/:username', getUser, (req, res) => {
 	res.json(res.user);
 });
-// Getting Date Range
+
+// get records for user in date range
 router.get('/dates/:username', getUser, (req, res) => {
 	const startDateString = new Date(req.body.startDate).toDateString();
 	const endDateString = new Date(req.body.endDate).toDateString();
@@ -98,10 +99,9 @@ router.get('/dates/:username', getUser, (req, res) => {
 					error: 'Unable to find records for specified dates.',
 			  };
 	res.json(records);
-	// res.json(res.user[0]);
 });
 
-// Updates the xp gain
+// update xp gain for one user
 router.put('/delta/:username', getUser, async (req, res) => {
 	res.header('Access-Control-Allow-Origin', '*');
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
@@ -163,7 +163,7 @@ router.put('/delta/:username', getUser, async (req, res) => {
 	}
 });
 
-// Updates the xp gain of all users
+// update xp gain for all users
 router.put('/massupdate', getUser, async (req, res) => {
 	// const users = User.find({});
 	// console.log(users);
@@ -209,7 +209,7 @@ router.put('/massupdate', getUser, async (req, res) => {
 		.json({ message: 'Wow haha nice', users_updated: usersUpdated });
 });
 
-// Updating One
+// update one user - NOT IN USE
 router.patch('/:username', getUser, async (req, res) => {
 	// if (req.body.username != null) {
 	// 	res.user.username = req.body.username;
@@ -235,7 +235,7 @@ router.patch('/:username', getUser, async (req, res) => {
 	}
 });
 
-// Deleting One
+// delete one user
 router.delete('/:id', getUser, async (req, res) => {
 	try {
 		await res.user.remove();
@@ -245,7 +245,7 @@ router.delete('/:id', getUser, async (req, res) => {
 	}
 });
 
-// Initialize
+// initialize a user
 router.post('/init', async (req, res) => {
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
 	for (const i in data) {
