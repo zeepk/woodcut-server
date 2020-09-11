@@ -64,7 +64,8 @@ router.get('/topten', async (req, res) => {
 						rsn: user.rsn,
 						xpgain: user.statRecords[0].stats[0][3],
 					};
-				});
+				})
+				.slice(0, 10);
 			res.json(topten);
 		})();
 	} catch (err) {
