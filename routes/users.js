@@ -77,6 +77,29 @@ router.get('/topten', async (req, res) => {
 router.get('/:username', getUser, (req, res) => {
 	res.json(res.user);
 });
+// Getting Date Range
+router.get('/dates/:username', getUser, (req, res) => {
+	const startDateString = new Date(req.body.startDate).toDateString();
+	const endDateString = new Date(req.body.endDate).toDateString();
+
+	const startRecord = res.user[0].statRecords.find(
+		(record) => new Date(record.date).toDateString() === startDateString
+	);
+	const endRecord = res.user[0].statRecords.find(
+		(record) => new Date(record.date).toDateString() === endDateString
+	);
+	const records =
+		startRecord && endRecord
+			? {
+					startRecord,
+					endRecord,
+			  }
+			: {
+					error: 'Unable to find records for specified dates.',
+			  };
+	res.json(records);
+	// res.json(res.user[0]);
+});
 
 // Updates the xp gain
 router.put('/delta/:username', getUser, async (req, res) => {
@@ -140,7 +163,7 @@ router.put('/delta/:username', getUser, async (req, res) => {
 	}
 });
 
-// Updates the xp gain
+// Updates the xp gain of all users
 router.put('/massupdate', getUser, async (req, res) => {
 	// const users = User.find({});
 	// console.log(users);
