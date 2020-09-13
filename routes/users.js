@@ -78,6 +78,21 @@ router.get('/:username', getUser, (req, res) => {
 	res.json(res.user);
 });
 
+// get user's gains over the last 7 days
+router.get('/week/:username', getUser, (req, res) => {
+	// const startDateString = new Date(req.body.startDate).toDateString();
+	// const endDateString = new Date(req.body.endDate).toDateString();
+
+	// const startRecord = res.user[0].statRecords.find(
+	// 	(record) => new Date(record.date).toDateString() === startDateString
+	// );
+	// const endRecord = res.user[0].statRecords.find(
+	// 	(record) => new Date(record.date).toDateString() === endDateString
+	// );
+	const records = res.user[0].statRecords.map((record) => record.date);
+	res.json(records);
+});
+
 // get records for user in date range
 router.get('/dates/:username', getUser, (req, res) => {
 	const startDateString = new Date(req.body.startDate).toDateString();
