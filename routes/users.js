@@ -4,6 +4,7 @@ const User = require('../models/User');
 const fetch = require('node-fetch');
 const proxyurl = 'https://api.allorigins.win/get?url=';
 const axios = require('axios');
+const { DateTime } = require('luxon');
 const API_URL = process.env.API_URL;
 
 // check user against offical runescape hiscores
@@ -79,18 +80,40 @@ router.get('/:username', getUser, (req, res) => {
 });
 
 // get user's gains over the last 7 days
-router.get('/week/:username', getUser, (req, res) => {
-	// const startDateString = new Date(req.body.startDate).toDateString();
-	// const endDateString = new Date(req.body.endDate).toDateString();
-
-	// const startRecord = res.user[0].statRecords.find(
-	// 	(record) => new Date(record.date).toDateString() === startDateString
-	// );
-	// const endRecord = res.user[0].statRecords.find(
-	// 	(record) => new Date(record.date).toDateString() === endDateString
-	// );
-	const records = res.user[0].statRecords.map((record) => record.date);
-	res.json(records);
+router.get('/weekstart/:username', getUser, async (req, res) => {
+	const endDateString = new Date();
+	const endDate = DateTime.fromISO(endDateString.toISOString());
+	const startDate = endDate.startOf('week');
+	console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
+	console.log(new Date(startDate).toDateString());
+	const startRecord = res.user[0].statRecords.find(
+		(record) =>
+			new Date(record.date).toDateString() ===
+			new Date(startDate).toDateString()
+	);
+	// if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
+	// 	for (var i = 0; i < data.length; i++) {
+	// 		const stat = res.user[0].statRecords[0].stats[i];
+	// 		stat[stat.length - 1] =
+	// 			+data[i][data[i].length - 1] - +stat[stat.length - 2];
+	// 	}
+	// 	res.user[0].statRecords[0].date = new Date();
+	// 	console.log('Updating deltas');
+	// } else {
+	// 	console.log(
+	// 		'Most recent record is not from today. Data needs to be updated.'
+	// 	);
+	// }
+	// res.user[0].markModified('statRecords');
+	// try {
+	// 	const updatedUser = await res.user[0].save();
+	// 	res.json(updatedUser);
+	// } catch (err) {
+	// 	console.log('Error saving in /delta API endpoint');
+	// 	res.status(400).json({ message: err.message });
+	// }
+	// const records = res.user[0].statRecords.map((record) => record.date);
+	res.json(startRecord);
 });
 
 // get records for user in date range
@@ -155,19 +178,57 @@ router.put('/delta/:username', getUser, async (req, res) => {
 		}
 		return;
 	}
-	if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
-		for (var i = 0; i < data.length; i++) {
-			const stat = res.user[0].statRecords[0].stats[i];
-			stat[stat.length - 1] =
-				+data[i][data[i].length - 1] - +stat[stat.length - 2];
+	const endDateString = new Date();
+	const endDate = DateTime.fromISO(endDateString.toISOString());
+	const startDate = endDate.startOf('week');
+	console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
+	console.log(new Date(startDate).toDateString());
+	const weekRecord =
+		res.user[0].statRecords.find(
+			(record) =>
+				new Date(record.date).toDateString() ===
+				new Date(startDate).toDateString()
+		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+	const monthRecord =
+		res.user[0].statRecords.find(
+			(record) =>
+				new Date(record.date).toDateString() ===
+				new Date(startDate.startOf('month')).toDateString()
+		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+	const yearRecord =
+		res.user[0].statRecords.find(
+			(record) =>
+				new Date(record.date).toDateString() ===
+				new Date(startDate.startOf('year')).toDateString()
+		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+	for (var i = 0; i < data.length; i++) {
+		// get stat
+		const stat = res.user[0].statRecords[0].stats[i];
+		if (stat.length < 6) {
+			stat.push(0);
+			stat.push(0);
+			stat.push(0);
 		}
-		res.user[0].statRecords[0].date = new Date();
-		console.log('Updating deltas');
-	} else {
-		console.log(
-			'Most recent record is not from today. Data needs to be updated.'
-		);
+		console.log(weekRecord.stats[i]);
+		// update day
+		stat[stat.length - 4] =
+			+data[i][data[i].length - 1] - +stat[stat.length - 5];
+		// update week
+		stat[stat.length - 3] =
+			+data[i][data[i].length - 1] -
+			+weekRecord.stats[i][weekRecord.stats[i].length - 2];
+		// update month
+		stat[stat.length - 2] =
+			+data[i][data[i].length - 1] -
+			+monthRecord.stats[i][monthRecord.stats[i].length - 2];
+		// update year
+		stat[stat.length - 1] =
+			+data[i][data[i].length - 1] -
+			+yearRecord.stats[i][yearRecord.stats[i].length - 2];
 	}
+	res.user[0].statRecords[0].date = new Date();
+	console.log('Updating deltas');
+
 	res.user[0].markModified('statRecords');
 	try {
 		const updatedUser = await res.user[0].save();
@@ -194,6 +255,9 @@ router.put('/massupdate', getUser, async (req, res) => {
 				}
 				users[user].statRecords[0].date = new Date();
 				for (const i in data) {
+					data[i].push(0);
+					data[i].push(0);
+					data[i].push(0);
 					data[i].push(0);
 				}
 				console.log(users[user].lastUpdated.getHours());
