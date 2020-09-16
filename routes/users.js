@@ -35,17 +35,70 @@ router.get('/topten', async (req, res) => {
 			const users = await User.find();
 			// updating all users, this might make it slower idk
 			await (function () {
+				const endDateString = new Date();
+				const endDate = DateTime.fromISO(endDateString.toISOString());
+				const startDate = endDate.startOf('week');
+				console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
+				console.log(new Date(startDate).toDateString());
 				for (const user in users) {
 					(async function () {
 						const data = await apiCheck(
 							users[user].username.split(' ').join('+')
 						);
+						// getting the date for the start of the week
+						// grab the record for the week start date, or the oldest record if the user is < 1 week old
+						const weekRecord =
+							users[user].statRecords.find(
+								(record) =>
+									new Date(record.date).toDateString() ===
+									new Date(startDate).toDateString()
+							) || users[user].statRecords[users[user].statRecords.length - 1];
+						// same thing for the start of the month
+						const monthRecord =
+							users[user].statRecords.find(
+								(record) =>
+									new Date(record.date).toDateString() ===
+									new Date(startDate.startOf('month')).toDateString()
+							) || users[user].statRecords[users[user].statRecords.length - 1];
+						// and the start of the year
+						const yearRecord =
+							users[user].statRecords.find(
+								(record) =>
+									new Date(record.date).toDateString() ===
+									new Date(startDate.startOf('year')).toDateString()
+							) || users[user].statRecords[users[user].statRecords.length - 1];
+						// now go through and add all the deltas to the array of stats
 						for (var i = 0; i < data.length; i++) {
+							// get stat
 							const stat = users[user].statRecords[0].stats[i];
+							// if the user doesn't have spots for week, month, etc, add them here
+							if (stat.length < 6) {
+								stat.push(0);
+								stat.push(0);
+								stat.push(0);
+							}
+							// update day
+							stat[stat.length - 4] =
+								+data[i][data[i].length - 1] - +stat[stat.length - 5];
+							// update week
+							stat[stat.length - 3] =
+								+data[i][data[i].length - 1] -
+								+weekRecord.stats[i][weekRecord.stats[i].length - 2];
+							// update month
+							stat[stat.length - 2] =
+								+data[i][data[i].length - 1] -
+								+monthRecord.stats[i][monthRecord.stats[i].length - 2];
+							// update year
 							stat[stat.length - 1] =
-								+data[i][data[i].length - 1] - +stat[stat.length - 2];
+								+data[i][data[i].length - 1] -
+								+yearRecord.stats[i][yearRecord.stats[i].length - 2];
 						}
 						users[user].statRecords[0].date = new Date();
+						console.log(
+							user +
+								': Updating deltas for ' +
+								users[user].username.split(' ').join('+')
+						);
 						users[user].markModified('statRecords');
 						console.log(users[user].username);
 						const newUser = await users[user].save();
@@ -55,7 +108,7 @@ router.get('/topten', async (req, res) => {
 			// then sorting to find top ten
 			const updatedUsers = await User.find();
 
-			const topten = updatedUsers
+			const day = updatedUsers
 				.sort(
 					(a, b) => b.statRecords[0].stats[0][3] - a.statRecords[0].stats[0][3]
 				)
@@ -67,7 +120,48 @@ router.get('/topten', async (req, res) => {
 					};
 				})
 				.slice(0, 10);
-			res.json(topten);
+			const week = updatedUsers
+				.sort(
+					(a, b) => b.statRecords[0].stats[0][4] - a.statRecords[0].stats[0][4]
+				)
+				.map((user) => {
+					return {
+						username: user.username,
+						rsn: user.rsn,
+						xpgain: user.statRecords[0].stats[0][4],
+					};
+				})
+				.slice(0, 10);
+			const month = updatedUsers
+				.sort(
+					(a, b) => b.statRecords[0].stats[0][5] - a.statRecords[0].stats[0][5]
+				)
+				.map((user) => {
+					return {
+						username: user.username,
+						rsn: user.rsn,
+						xpgain: user.statRecords[0].stats[0][5],
+					};
+				})
+				.slice(0, 10);
+			const year = updatedUsers
+				.sort(
+					(a, b) => b.statRecords[0].stats[0][6] - a.statRecords[0].stats[0][6]
+				)
+				.map((user) => {
+					return {
+						username: user.username,
+						rsn: user.rsn,
+						xpgain: user.statRecords[0].stats[0][6],
+					};
+				})
+				.slice(0, 10);
+			res.json({
+				day,
+				week,
+				month,
+				year,
+			});
 		})();
 	} catch (err) {
 		res.status(500).json({ message: err.message });
@@ -178,38 +272,45 @@ router.put('/delta/:username', getUser, async (req, res) => {
 		}
 		return;
 	}
+	// getting the date for the start of the week
 	const endDateString = new Date();
 	const endDate = DateTime.fromISO(endDateString.toISOString());
 	const startDate = endDate.startOf('week');
 	console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
 	console.log(new Date(startDate).toDateString());
+	// grab the record for the week start date, or the oldest record if the user is < 1 week old
 	const weekRecord =
 		res.user[0].statRecords.find(
 			(record) =>
 				new Date(record.date).toDateString() ===
 				new Date(startDate).toDateString()
 		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+	// same thing for the start of the month
 	const monthRecord =
 		res.user[0].statRecords.find(
 			(record) =>
 				new Date(record.date).toDateString() ===
 				new Date(startDate.startOf('month')).toDateString()
 		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+	console.log(weekRecord);
+	// and the start of the year
 	const yearRecord =
 		res.user[0].statRecords.find(
 			(record) =>
 				new Date(record.date).toDateString() ===
 				new Date(startDate.startOf('year')).toDateString()
 		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+	// now go through and add all the deltas to the array of stats
 	for (var i = 0; i < data.length; i++) {
 		// get stat
 		const stat = res.user[0].statRecords[0].stats[i];
+		// if the user doesn't have spots for week, month, etc, add them here
 		if (stat.length < 6) {
 			stat.push(0);
 			stat.push(0);
 			stat.push(0);
 		}
-		console.log(weekRecord.stats[i]);
+		// console.log(weekRecord.stats[i]);
 		// update day
 		stat[stat.length - 4] =
 			+data[i][data[i].length - 1] - +stat[stat.length - 5];
