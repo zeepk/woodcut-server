@@ -416,14 +416,14 @@ router.patch('/:username', getUser, async (req, res) => {
 });
 
 // delete one user
-router.delete('/:id', getUser, async (req, res) => {
-	try {
-		await res.user.remove();
-		res.json({ message: 'Deleted User' });
-	} catch (err) {
-		res.status(500).json({ message: err.message });
-	}
-});
+// router.delete('/:id', getUser, async (req, res) => {
+// 	try {
+// 		await res.user.remove();
+// 		res.json({ message: 'Deleted User' });
+// 	} catch (err) {
+// 		res.status(500).json({ message: err.message });
+// 	}
+// });
 
 // initialize a user
 router.post('/init', async (req, res) => {
