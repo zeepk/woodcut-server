@@ -77,21 +77,36 @@ router.get('/topten', async (req, res) => {
 								stat.push(0);
 								stat.push(0);
 							}
+							if (weekRecord.stats[i].length < 6) {
+								weekRecord.stats[i].push(0);
+								weekRecord.stats[i].push(0);
+								weekRecord.stats[i].push(0);
+							}
+							if (monthRecord.stats[i].length < 6) {
+								monthRecord.stats[i].push(0);
+								monthRecord.stats[i].push(0);
+								monthRecord.stats[i].push(0);
+							}
+							if (yearRecord.stats[i].length < 6) {
+								yearRecord.stats[i].push(0);
+								yearRecord.stats[i].push(0);
+								yearRecord.stats[i].push(0);
+							}
 							// update day
 							stat[stat.length - 4] =
 								+data[i][data[i].length - 1] - +stat[stat.length - 5];
 							// update week
 							stat[stat.length - 3] =
 								+data[i][data[i].length - 1] -
-								+weekRecord.stats[i][weekRecord.stats[i].length - 2];
+								+weekRecord.stats[i][weekRecord.stats[i].length - 5];
 							// update month
 							stat[stat.length - 2] =
 								+data[i][data[i].length - 1] -
-								+monthRecord.stats[i][monthRecord.stats[i].length - 2];
+								+monthRecord.stats[i][monthRecord.stats[i].length - 5];
 							// update year
 							stat[stat.length - 1] =
 								+data[i][data[i].length - 1] -
-								+yearRecord.stats[i][yearRecord.stats[i].length - 2];
+								+yearRecord.stats[i][yearRecord.stats[i].length - 5];
 						}
 						users[user].statRecords[0].date = new Date();
 						console.log(
