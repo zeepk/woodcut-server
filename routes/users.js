@@ -253,10 +253,12 @@ router.get('/daterange/:username', getUser, (req, res) => {
 	const startDate = new Date(req.query.startDate);
 	const endDate = new Date(req.query.endDate);
 
-	const recordsInRange = res.user[0].statRecords.filter(
-		(record) =>
-			new Date(record.date) <= endDate && new Date(record.date) >= startDate
-	);
+	const recordsInRange = res.user[0].statRecords
+		.filter(
+			(record) =>
+				new Date(record.date) <= endDate && new Date(record.date) >= startDate
+		)
+		.reverse();
 	const records =
 		recordsInRange.length > 0
 			? {
