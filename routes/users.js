@@ -250,8 +250,8 @@ router.get('/dates/:username', getUser, (req, res) => {
 
 // get all records for user in date range
 router.get('/daterange/:username', getUser, (req, res) => {
-	const startDate = new Date(req.body.startDate);
-	const endDate = new Date(req.body.endDate);
+	const startDate = new Date(req.query.startDate);
+	const endDate = new Date(req.query.endDate);
 
 	const recordsInRange = res.user[0].statRecords.filter(
 		(record) =>
@@ -264,6 +264,8 @@ router.get('/daterange/:username', getUser, (req, res) => {
 			  }
 			: {
 					error: 'Unable to find records for specified dates.',
+					startDate,
+					endDate,
 			  };
 	res.json(records);
 });
