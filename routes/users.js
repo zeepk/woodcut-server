@@ -252,6 +252,7 @@ router.get('/dates/:username', getUser, (req, res) => {
 router.get('/daterange/:username', getUser, (req, res) => {
 	const startDate = new Date(req.query.startDate);
 	const endDate = new Date(req.query.endDate);
+	endDate.setDate(endDate.getDate() + 1);
 
 	const recordsInRange = res.user[0].statRecords
 		.filter(
