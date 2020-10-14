@@ -6,6 +6,7 @@ const proxyurl = 'https://api.allorigins.win/get?url=';
 const axios = require('axios');
 const { DateTime } = require('luxon');
 const API_URL = process.env.API_URL;
+const request = require('request');
 
 // check user against offical runescape hiscores
 const apiCheck = async (username) => {
@@ -26,6 +27,29 @@ router.get('/', async (req, res) => {
 	} catch (err) {
 		res.status(500).json({ message: err.message });
 	}
+});
+
+// get all records for all users
+router.get('/details/:username', async (req, res) => {
+	console.log('getting details');
+	request(
+		`https://secure.runescape.com/m=website-data/playerDetails.ws?names=%5B%22${req.params.username}%22%5D&callback=jQuery000000000000000_0000000000&_=0`,
+		{ json: false },
+		(err, response, body) => {
+			if (err) {
+				return console.log(err);
+			}
+			console.log(response.body);
+			res.json({ test: response.body });
+		}
+	);
+	// console.log(data);
+	// try {
+	// 	const users = await User.find();
+	// 	res.json(users);
+	// } catch (err) {
+	// 	res.status(500).json({ message: err.message });
+	// }
 });
 
 // update xp for all and get top 10 xp gain
