@@ -29,9 +29,8 @@ router.get('/', async (req, res) => {
 	}
 });
 
-// get all records for all users
+// get details for player (clan name, title)
 router.get('/details/:username', async (req, res) => {
-	console.log('getting details');
 	request(
 		`https://secure.runescape.com/m=website-data/playerDetails.ws?names=%5B%22${req.params.username}%22%5D&callback=jQuery000000000000000_0000000000&_=0`,
 		{ json: false },
@@ -39,17 +38,30 @@ router.get('/details/:username', async (req, res) => {
 			if (err) {
 				return console.log(err);
 			}
-			console.log(response.body);
-			res.json({ test: response.body });
+			const jsonResponse = response.body
+				.split('000000000000000_0000000000')[1]
+				.split(';')[0]
+				.split('\\')
+				.join('');
+			res.json({
+				data: jsonResponse,
+			});
 		}
 	);
-	// console.log(data);
-	// try {
-	// 	const users = await User.find();
-	// 	res.json(users);
-	// } catch (err) {
-	// 	res.status(500).json({ message: err.message });
-	// }
+});
+
+// get current number of online players
+router.get('/playercount', async (req, res) => {
+	request(
+		`http://www.runescape.com/player_count.js?varname=iPlayerCount&callback=jQuery000000000000000_0000000000&_=0`,
+		{ json: false },
+		(err, response, body) => {
+			if (err) {
+				return console.log(err);
+			}
+			res.json({ players: +response.body.split('(')[1].split(')')[0] });
+		}
+	);
 });
 
 // update xp for all and get top 10 xp gain
