@@ -39,13 +39,11 @@ router.get('/details/:username', async (req, res) => {
 				return console.log(err);
 			}
 			const jsonResponse = response.body
-				.split('000000000000000_0000000000')[1]
-				.split(';')[0]
-				.split('\\')
-				.join('');
-			res.json({
-				data: jsonResponse,
-			});
+				.split('(')[1]
+				.split(')')[0]
+				.replace(/\\/g, '');
+			console.log(jsonResponse);
+			res.json(JSON.parse(jsonResponse));
 		}
 	);
 });
