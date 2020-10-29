@@ -65,153 +65,148 @@ router.get('/playercount', async (req, res) => {
 // update xp for all and get top 10 xp gain
 router.get('/topten', async (req, res) => {
 	try {
-		(async function () {
-			const users = await User.find();
-			// updating all users, this might make it slower idk
-			await (function () {
-				const endDateString = new Date();
-				const endDate = DateTime.fromISO(endDateString.toISOString());
-				const startDate = endDate.startOf('week');
-				console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
-				console.log(new Date(startDate).toDateString());
-				for (const user in users) {
-					(async function () {
-						const data = await apiCheck(
-							users[user].username.split(' ').join('+')
-						);
-						// getting the date for the start of the week
-						// grab the record for the week start date, or the oldest record if the user is < 1 week old
-						const weekRecord =
-							users[user].statRecords.find(
-								(record) =>
-									new Date(record.date).toDateString() ===
-									new Date(startDate).toDateString()
-							) || users[user].statRecords[users[user].statRecords.length - 1];
-						// same thing for the start of the month
-						const monthRecord =
-							users[user].statRecords.find(
-								(record) =>
-									new Date(record.date).toDateString() ===
-									new Date(startDate.startOf('month')).toDateString()
-							) || users[user].statRecords[users[user].statRecords.length - 1];
-						// and the start of the year
-						const yearRecord =
-							users[user].statRecords.find(
-								(record) =>
-									new Date(record.date).toDateString() ===
-									new Date(startDate.startOf('year')).toDateString()
-							) || users[user].statRecords[users[user].statRecords.length - 1];
-						// now go through and add all the deltas to the array of stats
-						for (var i = 0; i < data.length; i++) {
-							// get stat
-							const stat = users[user].statRecords[0].stats[i];
-							// if the user doesn't have spots for week, month, etc, add them here
-							if (stat.length < 6) {
-								stat.push(0);
-								stat.push(0);
-								stat.push(0);
-							}
-							if (weekRecord.stats[i].length < 6) {
-								weekRecord.stats[i].push(0);
-								weekRecord.stats[i].push(0);
-								weekRecord.stats[i].push(0);
-							}
-							if (monthRecord.stats[i].length < 6) {
-								monthRecord.stats[i].push(0);
-								monthRecord.stats[i].push(0);
-								monthRecord.stats[i].push(0);
-							}
-							if (yearRecord.stats[i].length < 6) {
-								yearRecord.stats[i].push(0);
-								yearRecord.stats[i].push(0);
-								yearRecord.stats[i].push(0);
-							}
-							// update day
-							stat[stat.length - 4] =
-								+data[i][data[i].length - 1] - +stat[stat.length - 5];
-							// update week
-							stat[stat.length - 3] =
-								+data[i][data[i].length - 1] -
-								+weekRecord.stats[i][weekRecord.stats[i].length - 5];
-							// update month
-							stat[stat.length - 2] =
-								+data[i][data[i].length - 1] -
-								+monthRecord.stats[i][monthRecord.stats[i].length - 5];
-							// update year
-							stat[stat.length - 1] =
-								+data[i][data[i].length - 1] -
-								+yearRecord.stats[i][yearRecord.stats[i].length - 5];
-						}
-						users[user].statRecords[0].date = new Date();
-						console.log(
-							user +
-								': Updating deltas for ' +
-								users[user].username.split(' ').join('+')
-						);
-						users[user].markModified('statRecords');
-						console.log(users[user].username);
-						const newUser = await users[user].save();
-					})();
+		// (async function () {
+		const users = await User.find();
+		// updating all users, this might make it slower idk
+		const endDateString = new Date();
+		const endDate = DateTime.fromISO(endDateString.toISOString());
+		const startDate = endDate.startOf('week');
+		console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
+		console.log(new Date(startDate).toDateString());
+		for (const user in users) {
+			(async function () {
+				const data = await apiCheck(users[user].username.split(' ').join('+'));
+				// getting the date for the start of the week
+				// grab the record for the week start date, or the oldest record if the user is < 1 week old
+				const weekRecord =
+					users[user].statRecords.find(
+						(record) =>
+							new Date(record.date).toDateString() ===
+							new Date(startDate).toDateString()
+					) || users[user].statRecords[users[user].statRecords.length - 1];
+				// same thing for the start of the month
+				const monthRecord =
+					users[user].statRecords.find(
+						(record) =>
+							new Date(record.date).toDateString() ===
+							new Date(startDate.startOf('month')).toDateString()
+					) || users[user].statRecords[users[user].statRecords.length - 1];
+				// and the start of the year
+				const yearRecord =
+					users[user].statRecords.find(
+						(record) =>
+							new Date(record.date).toDateString() ===
+							new Date(startDate.startOf('year')).toDateString()
+					) || users[user].statRecords[users[user].statRecords.length - 1];
+				// now go through and add all the deltas to the array of stats
+				for (var i = 0; i < data.length; i++) {
+					// get stat
+					const stat = users[user].statRecords[0].stats[i];
+					// if the user doesn't have spots for week, month, etc, add them here
+					if (stat.length < 6) {
+						stat.push(0);
+						stat.push(0);
+						stat.push(0);
+					}
+					if (weekRecord.stats[i].length < 6) {
+						weekRecord.stats[i].push(0);
+						weekRecord.stats[i].push(0);
+						weekRecord.stats[i].push(0);
+					}
+					if (monthRecord.stats[i].length < 6) {
+						monthRecord.stats[i].push(0);
+						monthRecord.stats[i].push(0);
+						monthRecord.stats[i].push(0);
+					}
+					if (yearRecord.stats[i].length < 6) {
+						yearRecord.stats[i].push(0);
+						yearRecord.stats[i].push(0);
+						yearRecord.stats[i].push(0);
+					}
+					// update day
+					stat[stat.length - 4] =
+						+data[i][data[i].length - 1] - +stat[stat.length - 5];
+					// update week
+					stat[stat.length - 3] =
+						+data[i][data[i].length - 1] -
+						+weekRecord.stats[i][weekRecord.stats[i].length - 5];
+					// update month
+					stat[stat.length - 2] =
+						+data[i][data[i].length - 1] -
+						+monthRecord.stats[i][monthRecord.stats[i].length - 5];
+					// update year
+					stat[stat.length - 1] =
+						+data[i][data[i].length - 1] -
+						+yearRecord.stats[i][yearRecord.stats[i].length - 5];
 				}
+				users[user].statRecords[0].date = new Date();
+				// console.log(
+				// 	user +
+				// 		': Updating deltas for ' +
+				// 		users[user].username.split(' ').join('+')
+				// );
+				users[user].markModified('statRecords');
+				// console.log(users[user].username);
+				const newUser = await users[user].save();
 			})();
-			// then sorting to find top ten
-			const updatedUsers = await User.find();
-
-			const day = updatedUsers
-				.sort(
-					(a, b) => b.statRecords[0].stats[0][3] - a.statRecords[0].stats[0][3]
-				)
-				.map((user) => {
-					return {
-						username: user.username,
-						rsn: user.rsn,
-						xpgain: user.statRecords[0].stats[0][3],
-					};
-				})
-				.slice(0, 10);
-			const week = updatedUsers
-				.sort(
-					(a, b) => b.statRecords[0].stats[0][4] - a.statRecords[0].stats[0][4]
-				)
-				.map((user) => {
-					return {
-						username: user.username,
-						rsn: user.rsn,
-						xpgain: user.statRecords[0].stats[0][4],
-					};
-				})
-				.slice(0, 10);
-			const month = updatedUsers
-				.sort(
-					(a, b) => b.statRecords[0].stats[0][5] - a.statRecords[0].stats[0][5]
-				)
-				.map((user) => {
-					return {
-						username: user.username,
-						rsn: user.rsn,
-						xpgain: user.statRecords[0].stats[0][5],
-					};
-				})
-				.slice(0, 10);
-			const year = updatedUsers
-				.sort(
-					(a, b) => b.statRecords[0].stats[0][6] - a.statRecords[0].stats[0][6]
-				)
-				.map((user) => {
-					return {
-						username: user.username,
-						rsn: user.rsn,
-						xpgain: user.statRecords[0].stats[0][6],
-					};
-				})
-				.slice(0, 10);
-			res.json({
-				day,
-				week,
-				month,
-				year,
-			});
-		})();
+		}
+		// then sorting to find top ten
+		const updatedUsers = await User.find();
+		console.log(updatedUsers);
+		const day = updatedUsers
+			.sort(
+				(a, b) => b.statRecords[0].stats[0][3] - a.statRecords[0].stats[0][3]
+			)
+			.map((user) => {
+				return {
+					username: user.username,
+					rsn: user.rsn,
+					xpgain: user.statRecords[0].stats[0][3],
+				};
+			})
+			.slice(0, 10);
+		const week = updatedUsers
+			.sort(
+				(a, b) => b.statRecords[0].stats[0][4] - a.statRecords[0].stats[0][4]
+			)
+			.map((user) => {
+				return {
+					username: user.username,
+					rsn: user.rsn,
+					xpgain: user.statRecords[0].stats[0][4],
+				};
+			})
+			.slice(0, 10);
+		const month = updatedUsers
+			.sort(
+				(a, b) => b.statRecords[0].stats[0][5] - a.statRecords[0].stats[0][5]
+			)
+			.map((user) => {
+				return {
+					username: user.username,
+					rsn: user.rsn,
+					xpgain: user.statRecords[0].stats[0][5],
+				};
+			})
+			.slice(0, 10);
+		const year = updatedUsers
+			.sort(
+				(a, b) => b.statRecords[0].stats[0][6] - a.statRecords[0].stats[0][6]
+			)
+			.map((user) => {
+				return {
+					username: user.username,
+					rsn: user.rsn,
+					xpgain: user.statRecords[0].stats[0][6],
+				};
+			})
+			.slice(0, 10);
+		res.json({
+			day,
+			week,
+			month,
+			year,
+		});
 	} catch (err) {
 		res.status(500).json({ message: err.message });
 	}
