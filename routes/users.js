@@ -17,6 +17,17 @@ const apiCheck = async (username) => {
 		});
 	return data;
 };
+// check user against offical runescape hiscores
+const activityCheck = async (username) => {
+	const data = await fetch(
+		`https://apps.runescape.com/runemetrics/profile/profile?user=${username}&activities=20`
+	)
+		.then((res) => res.json())
+		.then((res) => {
+			return res.activities;
+		});
+	return data;
+};
 // get all records for all users
 router.get('/', async (req, res) => {
 	try {
@@ -40,7 +51,6 @@ router.get('/details/:username', async (req, res) => {
 				.split('(')[1]
 				.split(')')[0]
 				.replace(/\\/g, '');
-			console.log(jsonResponse);
 			res.json(JSON.parse(jsonResponse));
 		}
 	);
@@ -495,6 +505,9 @@ router.get('/daterange/:username', getUser, (req, res) => {
 router.put('/delta/:username', getUser, async (req, res) => {
 	res.header('Access-Control-Allow-Origin', '*');
 	const data = await apiCheck(req.body.username.split(' ').join('+'));
+	const activities = await activityCheck(
+		req.body.username.split(' ').join('+')
+	);
 	if (!res.user[0]) {
 		console.log('user not found...');
 		if (data.length > 5) {
@@ -550,7 +563,6 @@ router.put('/delta/:username', getUser, async (req, res) => {
 				new Date(record.date).toDateString() ===
 				new Date(startDate.startOf('month')).toDateString()
 		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
-	console.log(weekRecord);
 	// and the start of the year
 	const yearRecord =
 		res.user[0].statRecords.find(
@@ -583,9 +595,9 @@ router.put('/delta/:username', getUser, async (req, res) => {
 			yearRecord.stats[i].push(0);
 			yearRecord.stats[i].push(0);
 		}
-		console.log(weekRecord.stats[i]);
-		console.log(+data[i][data[i].length - 1]);
-		console.log(+weekRecord.stats[i][weekRecord.stats[i].length - 2]);
+		// console.log(weekRecord.stats[i]);
+		// console.log(+data[i][data[i].length - 1]);
+		// console.log(+weekRecord.stats[i][weekRecord.stats[i].length - 2]);
 		// update day
 		stat[stat.length - 4] =
 			+data[i][data[i].length - 1] - +stat[stat.length - 5];
