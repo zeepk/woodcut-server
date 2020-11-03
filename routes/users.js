@@ -25,14 +25,21 @@ const apiCheck = async (username) => {
 
 // check user against offical runescape hiscores
 const activityCheck = async (username) => {
-	const data = await fetch(
-		`https://apps.runescape.com/runemetrics/profile/profile?user=${username}&activities=20`
-	)
-		.then((res) => res.json())
-		.then((res) => {
-			return res.activities;
-		});
-	return data;
+	try {
+		const data = await fetch(
+			`https://apps.runescape.com/runemetrics/profile/profile?user=${username}&activities=20`
+		)
+			.then((res) => res.json())
+			.then((res) => {
+				if (res.error) {
+					console.log('ERROR in profile');
+				}
+				return res.activities || null;
+			});
+		return data;
+	} catch (error) {
+		return null;
+	}
 };
 
 // get all records for all users
@@ -68,6 +75,20 @@ router.get('/activities', async (req, res) => {
 			activities.sort(
 				(a, b) => new Date(b.activityDate) - new Date(a.activityDate)
 			)
+		);
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
+
+// get all activities for all users, recent first
+router.get('/recentactivities', async (req, res) => {
+	try {
+		const activities = await Activity.find();
+		res.json(
+			activities
+				.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
+				.slice(0, 30)
 		);
 	} catch (err) {
 		res.status(500).json({ message: err.message });
@@ -118,61 +139,6 @@ router.put('/updatetopten', async (req, res) => {
 		const startDate = endDate.startOf('week');
 		console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
 		console.log(new Date(startDate).toDateString());
-		const updateAllUsers = () => {
-			for (const user in users) {
-				(async function () {
-					const data = await apiCheck(
-						users[user].username.split(' ').join('+')
-					);
-					// getting the date for the start of the week
-					// grab the record for the week start date, or the oldest record if the user is < 1 week old
-					const weekRecord =
-						users[user].statRecords.find(
-							(record) =>
-								new Date(record.date).toDateString() ===
-								new Date(startDate).toDateString()
-						) || users[user].statRecords[users[user].statRecords.length - 1];
-					// same thing for the start of the month
-					const monthRecord =
-						users[user].statRecords.find(
-							(record) =>
-								new Date(record.date).toDateString() ===
-								new Date(startDate.startOf('month')).toDateString()
-						) || users[user].statRecords[users[user].statRecords.length - 1];
-					// and the start of the year
-					const yearRecord =
-						users[user].statRecords.find(
-							(record) =>
-								new Date(record.date).toDateString() ===
-								new Date(startDate.startOf('year')).toDateString()
-						) || users[user].statRecords[users[user].statRecords.length - 1];
-					// now go through and add all the deltas to the array of stats
-					for (var i = 0; i < data.length; i++) {
-						// get stat
-						const stat = users[user].statRecords[0].stats[i];
-						// update day
-						stat[stat.length - 4] =
-							+data[i][data[i].length - 1] - +stat[stat.length - 5];
-						// update week
-						stat[stat.length - 3] =
-							+data[i][data[i].length - 1] -
-							+weekRecord.stats[i][weekRecord.stats[i].length - 5];
-						// update month
-						stat[stat.length - 2] =
-							+data[i][data[i].length - 1] -
-							+monthRecord.stats[i][monthRecord.stats[i].length - 5];
-						// update year
-						stat[stat.length - 1] =
-							+data[i][data[i].length - 1] -
-							+yearRecord.stats[i][yearRecord.stats[i].length - 5];
-					}
-					users[user].statRecords[0].date = new Date();
-					users[user].markModified('statRecords');
-					console.log(users[user].username);
-					const newUser = await users[user].save();
-				})();
-			}
-		};
 		const userPromises = users.map(async (user, index) => {
 			const data = await apiCheck(user.username.split(' ').join('+'));
 			// getting the date for the start of the week
@@ -574,7 +540,9 @@ router.put('/massupdate', getUser, async (req, res) => {
 
 // update activities gain for all users
 router.put('/massactivitiesupdate', getUser, async (req, res) => {
-	const usersUpdated = [];
+	const activities = await Activity.find();
+	console.log(activities.length);
+	let amountUpdated = 0;
 	User.find({}, function (err, users) {
 		for (const user in users) {
 			(async function () {
@@ -583,19 +551,20 @@ router.put('/massactivitiesupdate', getUser, async (req, res) => {
 				);
 				for (const i in data) {
 					if (
-						!users[user].activities.find(
+						!activities.some(
 							(existingActivity) =>
 								existingActivity.title === data[i].text &&
-								new Date(existingActivity.activityDate) ===
-									new Date(data[i].date)
+								new Date(existingActivity.activityDate).toString() ===
+									new Date(data[i].date).toString()
 						)
 					) {
 						console.log(data[i].text);
+						amountUpdated++;
 						const activity = new Activity({
-							user: users[user]._id,
+							username: users[user].username,
+							rsn: users[user].rsn,
 							title: data[i].text,
 							details: data[i].details,
-							title: data[i].details,
 							activityDate: new Date(data[i].date),
 						});
 						users[user].markModified('activities');
@@ -610,9 +579,11 @@ router.put('/massactivitiesupdate', getUser, async (req, res) => {
 			})();
 		}
 	});
-	res
-		.status(200)
-		.json({ message: 'Updated activites!', users_updated: usersUpdated });
+	console.log(`Finished updating activities.`);
+	res.status(200).json({
+		message: `Updated ${amountUpdated} activites!`,
+		users_updated: amountUpdated,
+	});
 });
 
 // update one user - NOT IN USE

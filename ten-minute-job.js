@@ -7,5 +7,11 @@ function massUpdate() {
 	}).then((response) => {
 		console.log(response.data);
 	});
+	axios({
+		method: 'put',
+		url: 'https://hidden-oasis-88699.herokuapp.com/users/massactivitiesupdate',
+	}).then((response) => {
+		console.log(response.data);
+	});
 }
 massUpdate();
