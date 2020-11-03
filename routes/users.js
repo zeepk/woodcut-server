@@ -68,6 +68,19 @@ router.get('/topten', async (req, res) => {
 	}
 });
 
+// get all top ten lists
+router.get('/alltopten', async (req, res) => {
+	try {
+		const topTen = await TopTenList.find();
+		res.json(
+			// topTen.sort()
+			topTen.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
+		);
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
+
 // get all activities for all users, recent first
 router.get('/activities', async (req, res) => {
 	try {
