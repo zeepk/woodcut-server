@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const userSchema = new mongoose.Schema({
-	_id: Schema.Types.ObjectId,
 	username: {
 		type: String,
 		required: true,
@@ -49,7 +48,6 @@ const userSchema = new mongoose.Schema({
 			},
 		},
 	],
-	activities: [{ type: Schema.Types.ObjectId, ref: 'Activity' }],
 });
 
 module.exports = mongoose.model('User', userSchema);
