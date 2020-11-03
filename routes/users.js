@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const TopTenList = require('../models/TopTenList');
+const ActivityChecks = require('../constants');
 const fetch = require('node-fetch');
 const proxyurl = 'https://api.allorigins.win/get?url=';
 const { DateTime } = require('luxon');
@@ -85,9 +86,11 @@ router.get('/activities', async (req, res) => {
 router.get('/recentactivities', async (req, res) => {
 	try {
 		const activities = await Activity.find();
+		// ActivityChecks;
 		res.json(
 			activities
 				.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
+				.filter((activity) => activity.title.includes(ActivityChecks[0]))
 				.slice(0, 30)
 		);
 	} catch (err) {
