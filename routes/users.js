@@ -306,28 +306,6 @@ router.get('/weekstart/:username', getUser, async (req, res) => {
 			new Date(record.date).toDateString() ===
 			new Date(startDate).toDateString()
 	);
-	// if (res.user[0].lastUpdated.toDateString() === new Date().toDateString()) {
-	// 	for (var i = 0; i < data.length; i++) {
-	// 		const stat = res.user[0].statRecords[0].stats[i];
-	// 		stat[stat.length - 1] =
-	// 			+data[i][data[i].length - 1] - +stat[stat.length - 2];
-	// 	}
-	// 	res.user[0].statRecords[0].date = new Date();
-	// 	console.log('Updating deltas');
-	// } else {
-	// 	console.log(
-	// 		'Most recent record is not from today. Data needs to be updated.'
-	// 	);
-	// }
-	// res.user[0].markModified('statRecords');
-	// try {
-	// 	const updatedUser = await res.user[0].save();
-	// 	res.json(updatedUser);
-	// } catch (err) {
-	// 	console.log('Error saving in /delta API endpoint');
-	// 	res.status(400).json({ message: err.message });
-	// }
-	// const records = res.user[0].statRecords.map((record) => record.date);
 	res.json(startRecord);
 });
 
@@ -527,18 +505,6 @@ router.put('/massupdate', getUser, async (req, res) => {
 					data[i].push(0);
 				}
 				console.log(users[user].lastUpdated.getHours());
-				// if (
-				// 	users[user].lastUpdated.toDateString() === new Date().toDateString()
-				// ) {
-				// 	// same day, does not need to be updated
-				// 	users[user].statRecords[0].stats = data;
-				// 	users[user].statRecords[0].date = new Date();
-				// 	console.log(
-				// 		'Overwrote data in mass update, daily gains lost for user: ' +
-				// 			users[user].username
-				// 	);
-				// } else {
-				// new day, needs to be updated
 				users[user].statRecords.unshift({ stats: data });
 				console.log('New day addition for user: ' + users[user].username);
 				// }
