@@ -113,6 +113,25 @@ router.get('/recentactivities', async (req, res) => {
 	}
 });
 
+// get all activities for one specific users, recent first
+router.get('/recentactivities/:username', async (req, res) => {
+	try {
+		const activities = await Activity.find({ username: req.params.username });
+		// ActivityChecks;
+		res.json(
+			activities.length > 0
+				? activities
+						.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
+						.filter((activity) =>
+							ActivityChecks.some((keyword) => activity.title.includes(keyword))
+						)
+				: { error: 'No activities available' }
+		);
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
+
 // get details for player (clan name, title)
 router.get('/details/:username', async (req, res) => {
 	request(
