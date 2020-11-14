@@ -120,11 +120,9 @@ router.get('/recentactivities/:username', async (req, res) => {
 		// ActivityChecks;
 		res.json(
 			activities.length > 0
-				? activities
-						.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
-						.filter((activity) =>
-							ActivityChecks.some((keyword) => activity.title.includes(keyword))
-						)
+				? activities.sort(
+						(a, b) => new Date(b.activityDate) - new Date(a.activityDate)
+				  )
 				: { error: 'No activities available' }
 		);
 	} catch (err) {
@@ -351,6 +349,42 @@ router.get('/dates/:username', getUser, (req, res) => {
 					error: 'Unable to find records for specified dates.',
 			  };
 	res.json(records);
+});
+
+// get xp gain between two date ranges
+router.get('/daterangegain/:username', getUser, (req, res) => {
+	const startDate = new Date(req.query.startDate);
+	const endDate = new Date(req.query.endDate);
+	if (endDate <= startDate) {
+		res.json({ error: 'Start date is not before end date.' });
+	}
+	const startRecord = res.user[0].statRecords.find(
+		(record) =>
+			new Date(record.date).toDateString() === startDate.toDateString()
+	);
+	const endRecord = res.user[0].statRecords.find(
+		(record) => new Date(record.date).toDateString() === endDate.toDateString()
+	);
+	if (startRecord && endRecord) {
+		const rangeGains = [];
+		for (var i = 0; i <= 28; i++) {
+			rangeGains.push({
+				id: i,
+				gain: +endRecord.stats[i][2] - +startRecord.stats[i][2],
+			});
+		}
+		res.json({
+			rangeGains,
+			startRecord,
+			endRecord,
+		});
+	} else {
+		res.json({
+			error: 'Unable to find records for specified dates.',
+			startDate,
+			endDate,
+		});
+	}
 });
 
 // get all records for user in date range
