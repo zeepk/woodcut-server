@@ -106,7 +106,7 @@ router.get('/recentactivities', async (req, res) => {
 				.filter((activity) =>
 					ActivityChecks.some((keyword) => activity.title.includes(keyword))
 				)
-				.slice(0, 30)
+				.slice(0, 100)
 		);
 	} catch (err) {
 		res.status(500).json({ message: err.message });
