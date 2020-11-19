@@ -353,6 +353,12 @@ router.get('/dates/:username', getUser, (req, res) => {
 
 // get xp gain between two date ranges
 router.get('/daterangegain/:username', getUser, (req, res) => {
+	if (!res.user[0]) {
+		res.json({
+			error: 'Unable to find user.',
+		});
+		return;
+	}
 	const startDate = new Date(req.query.startDate);
 	const endDate = new Date(req.query.endDate);
 	if (endDate <= startDate) {
@@ -437,10 +443,8 @@ router.put('/delta/:username', getUser, async (req, res) => {
 			});
 			try {
 				const newUser = await user.save();
-				res.status(200).json({
-					message: 'User not found, created successfully!',
-					data: data,
-				});
+				console.log('User created successfully.');
+				res.status(200).json(newUser);
 			} catch (err) {
 				res
 					.status(400)
