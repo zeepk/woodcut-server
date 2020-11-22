@@ -9,7 +9,7 @@ function massUpdate() {
 		axios({
 			method: 'put',
 			url:
-				'https://hidden-oasis-88699.herokuapp.com/users/massactivitiesupdate',
+				'https://hidden-oasis-88699.herokuapp.com/activities/massactivitiesupdate',
 		}).then((response) => {
 			console.log(response.data);
 		});

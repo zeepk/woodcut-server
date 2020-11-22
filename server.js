@@ -11,11 +11,11 @@ app.use(function (req, res, next) {
 	res.header('Access-Control-Allow-Credentials', true);
 	res.header(
 		'Access-Control-Allow-Methods',
-		'GET,PUT,POST,PATCH,DELETE,OPTIONS',
+		'GET,PUT,POST,PATCH,DELETE,OPTIONS'
 	);
 	res.header(
 		'Access-Control-Allow-Headers',
-		'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json',
+		'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json'
 	);
 	next();
 });
@@ -28,6 +28,12 @@ app.use(express.json());
 const usersRouter = require('./routes/users');
 app.use('/users', usersRouter);
 
+const activitiesRouter = require('./routes/activities');
+app.use('/activities', activitiesRouter);
+
+const clansRouter = require('./routes/clans');
+app.use('/clans', clansRouter);
+
 app.listen(process.env.PORT || 8000, () =>
-	console.log('Server started on port 8000'),
+	console.log('Server started on port 8000')
 );
