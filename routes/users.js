@@ -494,7 +494,6 @@ router.put('/delta/:username', getUser, async (req, res) => {
 // update xp gain for all users
 router.put('/massupdate', getUser, async (req, res) => {
 	// const users = User.find({});
-	// console.log(users);
 	const usersUpdated = [];
 	User.find({}, function (err, users) {
 		for (const user in users) {
