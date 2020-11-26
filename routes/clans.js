@@ -1,12 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const Activity = require('../models/Activity');
-const ActivityChecks = require('../constants');
 const fetch = require('node-fetch');
-const proxyurl = 'https://api.allorigins.win/get?url=';
 
-// check user against offical runescape hiscores
+// check clan against offical runescape api
 const apiCheck = async (clanName) => {
 	console.log(`Checking clan API for ${clanName}`);
 	const clanNameCSV = await fetch(
@@ -22,7 +19,7 @@ const apiCheck = async (clanName) => {
 					return {
 						username: infoArray[0].replace(/\uFFFD/g, ' '),
 						rank: infoArray[1],
-						xp: +infoArray[2],
+						clanXp: +infoArray[2],
 						kills: +infoArray[3],
 					};
 				});
@@ -32,7 +29,8 @@ const apiCheck = async (clanName) => {
 	return clanNameCSV;
 };
 
-// return various clan information
+// get list of clan members with username, clan rank, clan xp, kills
+// TODO: add day xp gain, recent clan activities
 router.get('/members', async (req, res) => {
 	try {
 		const clanMembers = await apiCheck(req.body.clanName.split(' ').join('+'));
