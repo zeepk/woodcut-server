@@ -54,13 +54,8 @@ router.get('/', async (req, res) => {
 // get most recent top ten list
 router.get('/topten', async (req, res) => {
 	try {
-		const topTen = await TopTenList.find();
-		res.json(
-			// topTen.sort()
-			topTen.sort(
-				(a, b) => new Date(b.createdDate) - new Date(a.createdDate)
-			)[0]
-		);
+		const topTen = await TopTenList.find().sort({ createdDate: 1 }).limit(1);
+		res.json(topTen[0]);
 	} catch (err) {
 		res.status(500).json({ message: err.message });
 	}
