@@ -1,1 +1,1 @@
-module.exports = ['XP in', ' pet', 'levels', 'Levelled all'];
+module.exports = ['XP in', ' pet', 'levels', 'level 99'];

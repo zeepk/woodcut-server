@@ -63,7 +63,11 @@ router.get('/recentactivities', async (req, res) => {
 			activities
 				.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
 				.filter((activity) =>
-					ActivityChecks.some((keyword) => activity.title.includes(keyword))
+					ActivityChecks.some(
+						(keyword) =>
+							activity.title.includes(keyword) ||
+							activity.details.includes(keyword)
+					)
 				)
 				.slice(0, 100)
 		);
