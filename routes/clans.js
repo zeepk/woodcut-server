@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Activity = require('../models/Activity');
+const ActivityChecks = require('../constants');
 const fetch = require('node-fetch');
 
 // check clan against offical runescape api
@@ -30,30 +32,95 @@ const apiCheck = async (clanName) => {
 };
 
 // get list of clan members with username, clan rank, clan xp, kills
-// TODO: add day xp gain, recent clan activities
 router.get('/members', async (req, res) => {
 	try {
-		const clanMembers = await apiCheck(req.body.clanName.split(' ').join('+'));
+		const clanMemberApiData = await apiCheck(
+			req.body.clanName.split(' ').join('+')
+		);
+		const clanMemberNames = clanMemberApiData.map((member) =>
+			member.username.toLowerCase().split(' ').join('+')
+		);
+		const users = await User.find(
+			{ username: { $in: clanMemberNames } },
+			{ statRecords: { $slice: 1 } }
+		);
+		const clanMembers = users.map((user) => {
+			const userClanDetails = clanMemberApiData.find(
+				(clannie) =>
+					clannie.username.toLowerCase().split(' ').join('+') === user.username
+			);
+			if (!userClanDetails) {
+				return;
+			}
+			return {
+				username: user.username,
+				clanRank: userClanDetails.rank,
+				clanXp: userClanDetails.clanXp,
+				totalLevel: +user.statRecords[0].stats[0][1],
+				totalXp: +user.statRecords[0].stats[0][2],
+				dayGain: user.statRecords[0].stats[0][3],
+				runeScore: +user.statRecords[0].stats[53][1],
+			};
+		});
 		res.json(clanMembers);
 	} catch (err) {
 		res.status(500).json({ message: err.message });
 	}
 });
 
-async function getUser(req, res, next) {
-	console.log(req.params.username);
-	let user;
+// used to make sure all clan members are being tracked
+router.get('/update', async (req, res) => {
 	try {
-		user = await User.find({ username: req.params.username });
-		if (user == null) {
-			return res.status(404).json({ message: 'Cannot find user' });
-		}
+		let newMemberCount = 0;
+		const clanMemberApiData = await apiCheck(
+			req.body.clanName.split(' ').join('+')
+		);
+		const clanMemberNames = clanMemberApiData.map((member) =>
+			member.username.toLowerCase().split(' ').join('+')
+		);
+		const users = await clanMemberNames.map(async (name) => {
+			const userRecord = await User.find({ username: name });
+			if (!userRecord) {
+				newMemberCount++;
+			}
+			return userRecord;
+		});
+		res.json({
+			newMemberCount,
+			users,
+		});
 	} catch (err) {
-		return res.status(500).json({ message: err.message });
+		res.status(500).json({ message: err.message });
 	}
+});
 
-	res.user = user;
-	next();
-}
+// get list of recent activities from users in the clan
+router.get('/activities', async (req, res) => {
+	try {
+		const clanMemberApiData = await apiCheck(
+			req.body.clanName.split(' ').join('+')
+		);
+		const clanMemberNames = clanMemberApiData.map((member) =>
+			member.username.toLowerCase().split(' ').join('+')
+		);
+		const activities = await Activity.find({
+			username: { $in: clanMemberNames },
+		});
+		res.json(
+			activities
+				.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
+				.filter((activity) =>
+					ActivityChecks.some(
+						(keyword) =>
+							activity.title.includes(keyword) ||
+							activity.details.includes(keyword)
+					)
+				)
+				.slice(0, 100)
+		);
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
 
 module.exports = router;
