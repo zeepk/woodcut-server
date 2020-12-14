@@ -5,6 +5,16 @@ const Activity = require('../models/Activity');
 const ActivityChecks = require('../constants');
 const fetch = require('node-fetch');
 
+const ClanActivityChecks = [
+	'XP in',
+	' pet',
+	'levels',
+	'level 99',
+	'max cape',
+	'completionist',
+	'found',
+];
+
 // check clan against offical runescape api
 const apiCheck = async (clanName) => {
 	console.log(`Checking clan API for ${clanName}`);
@@ -35,16 +45,23 @@ const apiCheck = async (clanName) => {
 router.get('/members', async (req, res) => {
 	try {
 		const clanMemberApiData = await apiCheck(
-			req.body.clanName.split(' ').join('+')
+			req.query.name
+			// req.body.clanName.split(' ').join('+')
 		);
 		const clanMemberNames = clanMemberApiData.map((member) =>
 			member.username.toLowerCase().split(' ').join('+')
 		);
+		const names = clanMemberNames.map((name) => {
+			return {
+				name,
+			};
+		});
+		const memberCount = clanMemberNames.length;
 		const users = await User.find(
 			{ username: { $in: clanMemberNames } },
 			{ statRecords: { $slice: 1 } }
 		);
-		const clanMembers = users.map((user) => {
+		const members = users.map((user) => {
 			const userClanDetails = clanMemberApiData.find(
 				(clannie) =>
 					clannie.username.toLowerCase().split(' ').join('+') === user.username
@@ -56,13 +73,17 @@ router.get('/members', async (req, res) => {
 				username: user.username,
 				clanRank: userClanDetails.rank,
 				clanXp: userClanDetails.clanXp,
-				totalLevel: +user.statRecords[0].stats[0][1],
-				totalXp: +user.statRecords[0].stats[0][2],
-				dayGain: user.statRecords[0].stats[0][3],
-				runeScore: +user.statRecords[0].stats[53][1],
+				totalLevel: +user.statRecords[0].stats[0][1] || 0,
+				totalXp: +user.statRecords[0].stats[0][2] || 0,
+				dayGain: user.statRecords[0].stats[0][3] || 0,
+				runeScore: +user.statRecords[0].stats[53][1] || 0,
 			};
 		});
-		res.json(clanMembers);
+		res.json({
+			memberCount,
+			members: members.sort((a, b) => b.dayGain - a.dayGain).slice(0, 10),
+			names,
+		});
 	} catch (err) {
 		res.status(500).json({ message: err.message });
 	}
@@ -97,9 +118,7 @@ router.get('/update', async (req, res) => {
 // get list of recent activities from users in the clan
 router.get('/activities', async (req, res) => {
 	try {
-		const clanMemberApiData = await apiCheck(
-			req.body.clanName.split(' ').join('+')
-		);
+		const clanMemberApiData = await apiCheck(req.query.name);
 		const clanMemberNames = clanMemberApiData.map((member) =>
 			member.username.toLowerCase().split(' ').join('+')
 		);
@@ -110,13 +129,17 @@ router.get('/activities', async (req, res) => {
 			activities
 				.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
 				.filter((activity) =>
-					ActivityChecks.some(
+					ClanActivityChecks.some(
 						(keyword) =>
 							activity.title.includes(keyword) ||
 							activity.details.includes(keyword)
 					)
 				)
 				.slice(0, 100)
+				.map((activity) => {
+					activity.title = activity.title.replace('I found', 'Found');
+					return activity;
+				})
 		);
 	} catch (err) {
 		res.status(500).json({ message: err.message });
