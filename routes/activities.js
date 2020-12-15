@@ -69,6 +69,12 @@ router.get('/recentactivities', async (req, res) => {
 							activity.details.includes(keyword)
 					)
 				)
+				.filter((activity) => {
+					if (activity.title.includes('XP in ')) {
+						return +activity.title.split('XP')[0] % 10000000 === 0;
+					}
+					return true;
+				})
 				.slice(0, 100)
 		);
 	} catch (err) {
