@@ -376,7 +376,7 @@ router.put('/delta/:username', getUser, async (req, res) => {
 				data[i].push(0);
 			}
 			const user = new User({
-				username: req.body.username.split(' ').join('+'),
+				username: req.body.username.toLowerCase().split(' ').join('+'),
 				rsn: req.body.username,
 				lastUpdated: Date.now(),
 				statRecords: [
@@ -565,7 +565,7 @@ router.post('/init', async (req, res) => {
 		data[i].push(0);
 	}
 	const user = new User({
-		username: req.body.username.split(' ').join('+'),
+		username: req.body.username.toLowerCase().split(' ').join('+'),
 		rsn: req.body.username,
 		lastUpdated: Date.now(),
 		statRecords: [

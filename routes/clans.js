@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Clan = require('../models/Clan');
 const Activity = require('../models/Activity');
-const ActivityChecks = require('../constants');
 const fetch = require('node-fetch');
+const proxyurl = 'https://api.allorigins.win/get?url=';
 
 const ClanActivityChecks = [
 	'XP in',
@@ -17,7 +18,7 @@ const ClanActivityChecks = [
 
 // check clan against offical runescape api
 const apiCheck = async (clanName) => {
-	console.log(`Checking clan API for ${clanName}`);
+	console.log(`Getting clan member list for ${clanName}`);
 	const clanNameCSV = await fetch(
 		`http://services.runescape.com/m=clan-hiscores/members_lite.ws?clanName=${clanName}`
 	)
@@ -40,6 +41,88 @@ const apiCheck = async (clanName) => {
 
 	return clanNameCSV;
 };
+
+// check user against offical runescape hiscores
+const userAPICheck = async (username) => {
+	console.log(`Checking RuneScape API for ${username}`);
+	const data = await fetch(
+		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
+	)
+		.then((res) => res.json())
+		.then((res) => {
+			return res.contents.split('\n').map((record) => record.split(','));
+		});
+	return data;
+};
+
+// make sure all users are in the db
+const updateUsers = async (clanMembers) => {
+	console.log(`Updating ${clanMembers.length} members...`);
+	let newUsersCount = 0;
+	Promise.all(
+		clanMembers.map(async (member) => {
+			const user = await User.findOne({
+				username: member.username.toLowerCase().split(' ').join('+'),
+			});
+			if (!user) {
+				newUsersCount++;
+				const data = await userAPICheck(
+					member.username.toLowerCase().split(' ').join('+')
+				);
+				if (data.length < 5) {
+					console.log(
+						`User ${member.username
+							.split(' ')
+							.join('+')
+							.toLowerCase()} not found in the hiscores`
+					);
+					return;
+				}
+				for (const i in data) {
+					data[i].push(0);
+				}
+				const user = new User({
+					username: member.username.toLowerCase().split(' ').join('+'),
+					rsn: member.username,
+					lastUpdated: Date.now(),
+					statRecords: [
+						{
+							stats: data,
+						},
+					],
+				});
+				try {
+					const newUser = await user.save();
+				} catch (err) {
+					console.log(err.message);
+				}
+			} else {
+				console.log(member.username + ' exsists!');
+			}
+		})
+	);
+	return newUsersCount;
+};
+
+// goes through and updates the stats of each clan
+router.put('/updateclans', async (req, res) => {
+	try {
+		const clans = await Clan.find();
+
+		Promise.all(
+			clans.map(async (clan) => {
+				const clanMemberApiData = await apiCheck(clan.name);
+				await updateUsers(clanMemberApiData);
+				// TODO: map through clanMemberApiData and update with their day gain, total lvl, total xp, and runescore
+				// then, set clan.members equal to clanMemberApiData I think
+			})
+		).then(() => {
+			res.json({ message: 'Success' });
+		});
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
 
 // get list of clan members with username, clan rank, clan xp, kills
 router.get('/members', async (req, res) => {
@@ -89,26 +172,41 @@ router.get('/members', async (req, res) => {
 	}
 });
 
-// used to make sure all clan members are being tracked
-router.get('/update', async (req, res) => {
+// returns info for clan, or creates it in db if not found
+router.get('/', async (req, res) => {
 	try {
-		let newMemberCount = 0;
-		const clanMemberApiData = await apiCheck(
-			req.body.clanName.split(' ').join('+')
-		);
-		const clanMemberNames = clanMemberApiData.map((member) =>
-			member.username.toLowerCase().split(' ').join('+')
-		);
-		const users = await clanMemberNames.map(async (name) => {
-			const userRecord = await User.find({ username: name });
-			if (!userRecord) {
-				newMemberCount++;
+		let wasCreated = false;
+		const name = req.query.name;
+
+		// get clan from our database
+		const clan = await Clan.find({ name: name });
+
+		if (clan.length === 0) {
+			// clan was not found, need to create
+			// get API data, if there is none, clan does not exist
+			clanMemberApiData = await apiCheck(name);
+			if (clanMemberApiData.length === 0) {
+				res
+					.status(500)
+					.json({ message: 'Clan does not exist in Runescape API data' });
 			}
-			return userRecord;
-		});
+
+			wasCreated = true;
+			const newClan = new Clan({
+				name,
+				lastUpdated: Date.now(),
+				memberCount: clanMemberApiData.length,
+			});
+			try {
+				const newClanResponse = await newClan.save();
+				res.status(201).json({ wasCreated, clan: newClanResponse });
+			} catch (err) {
+				res.status(400).json({ message: err.message });
+			}
+		}
 		res.json({
-			newMemberCount,
-			users,
+			wasCreated,
+			clan: clan[0],
 		});
 	} catch (err) {
 		res.status(500).json({ message: err.message });
