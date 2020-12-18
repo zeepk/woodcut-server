@@ -10,11 +10,14 @@ const request = require('request');
 // check user against offical runescape hiscores
 const apiCheck = async (username) => {
 	const data = await fetch(
-		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
+		`https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
 	)
-		.then((res) => res.json())
+		.then((res) => res.text())
 		.then((res) => {
-			return res.contents.split('\n').map((record) => record.split(','));
+			if (username.includes('readnip')) {
+				console.log(res);
+			}
+			return res.split('\n').map((record) => record.split(','));
 		});
 	return data;
 };
@@ -118,16 +121,19 @@ router.put('/updatetopten', async (req, res) => {
 			// getting the date for the start of the week
 			// grab the record for the week start date, or the oldest record if the user is < 1 week old
 			let weekRecord =
-				user.statRecords.find(
-					(record) =>
-						new Date(record.date).toDateString() ===
-						new Date(startDate).toDateString()
-				) || user.statRecords[user.statRecords.length - 1];
-			if (weekRecord.stats.toString().includes('NaN')) {
-				weekRecord =
-					user.statRecords[user.statRecords.length - 2] ||
-					user.statRecords[user.statRecords.length - 1];
-			}
+				user.statRecords.find((record) => record.weekStart === true) ||
+				user.statRecords[user.statRecords.length - 1];
+			// user.statRecords.find(
+			// 	(record) =>
+			// 		new Date(record.date).toDateString() ===
+			// 		new Date(startDate).toDateString()
+			// ) || user.statRecords[user.statRecords.length - 1];
+
+			// if (weekRecord.stats.toString().includes('NaN')) {
+			// 	weekRecord =
+			// 		user.statRecords[user.statRecords.length - 2] ||
+			// 		user.statRecords[user.statRecords.length - 1];
+			// }
 			// same thing for the start of the month
 			let monthRecord =
 				user.statRecords.find(
@@ -136,22 +142,22 @@ router.put('/updatetopten', async (req, res) => {
 						new Date(startDate.startOf('month')).toDateString()
 				) || user.statRecords[user.statRecords.length - 1];
 			// and the start of the year
-			if (monthRecord.stats.toString().includes('NaN')) {
-				monthRecord =
-					user.statRecords[user.statRecords.length - 2] ||
-					user.statRecords[user.statRecords.length - 1];
-			}
+			// if (monthRecord.stats.toString().includes('NaN')) {
+			// 	monthRecord =
+			// 		user.statRecords[user.statRecords.length - 2] ||
+			// 		user.statRecords[user.statRecords.length - 1];
+			// }
 			let yearRecord =
 				user.statRecords.find(
 					(record) =>
 						new Date(record.date).toDateString() ===
 						new Date(startDate.startOf('year')).toDateString()
 				) || user.statRecords[user.statRecords.length - 1];
-			if (yearRecord.stats.toString().includes('NaN')) {
-				yearRecord =
-					user.statRecords[user.statRecords.length - 2] ||
-					user.statRecords[user.statRecords.length - 1];
-			}
+			// if (yearRecord.stats.toString().includes('NaN')) {
+			// 	yearRecord =
+			// 		user.statRecords[user.statRecords.length - 2] ||
+			// 		user.statRecords[user.statRecords.length - 1];
+			// }
 			// now go through and add all the deltas to the array of stats
 			for (var i = 0; i < data.length; i++) {
 				// get stat
@@ -163,6 +169,10 @@ router.put('/updatetopten', async (req, res) => {
 				stat[stat.length - 4] =
 					+data[i][data[i].length - 1] - +stat[stat.length - 5];
 				// update week
+				if (user.username.toLowerCase().includes('breadnip') && i === 0) {
+					console.log(+weekRecord.stats[i][weekRecord.stats[i].length - 5]);
+					console.log(+data[i][data[i].length - 1]);
+				}
 				stat[stat.length - 3] =
 					+data[i][data[i].length - 1] -
 					+weekRecord.stats[i][weekRecord.stats[i].length - 5];
@@ -419,11 +429,13 @@ router.put('/delta/:username', getUser, async (req, res) => {
 	console.log(new Date(startDate).toDateString());
 	// grab the record for the week start date, or the oldest record if the user is < 1 week old
 	const weekRecord =
-		res.user[0].statRecords.find(
-			(record) =>
-				new Date(record.date).toDateString() ===
-				new Date(startDate).toDateString()
-		) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
+		res.user[0].statRecords.find((record) => record.weekStart === true) ||
+		res.user[0].statRecords.reverse()[0];
+	// res.user[0].statRecords.find(
+	// 	(record) =>
+	// 		new Date(record.date).toDateString() ===
+	// 		new Date(startDate).toDateString()
+	// ) || res.user[0].statRecords[res.user[0].statRecords.length - 1];
 	// same thing for the start of the month
 	const monthRecord =
 		res.user[0].statRecords.find(
