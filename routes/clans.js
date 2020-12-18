@@ -5,6 +5,7 @@ const Clan = require('../models/Clan');
 const Activity = require('../models/Activity');
 const fetch = require('node-fetch');
 const proxyurl = 'https://api.allorigins.win/get?url=';
+const { DateTime } = require('luxon');
 
 const ClanActivityChecks = [
 	'XP in',
@@ -58,27 +59,22 @@ const userAPICheck = async (username) => {
 // make sure all users are in the db
 const updateUsers = async (clanMembers) => {
 	console.log(`Updating ${clanMembers.length} members...`);
-	let newUsersCount = 0;
 	Promise.all(
 		clanMembers.map(async (member) => {
 			const user = await User.findOne({
 				username: member.username.toLowerCase().split(' ').join('+'),
 			});
 			if (!user) {
-				newUsersCount++;
 				const data = await userAPICheck(
 					member.username.toLowerCase().split(' ').join('+')
 				);
 				if (data.length < 5) {
-					console.log(
-						`User ${member.username
-							.split(' ')
-							.join('+')
-							.toLowerCase()} not found in the hiscores`
-					);
 					return;
 				}
 				for (const i in data) {
+					data[i].push(0);
+					data[i].push(0);
+					data[i].push(0);
 					data[i].push(0);
 				}
 				const user = new User({
@@ -92,16 +88,14 @@ const updateUsers = async (clanMembers) => {
 					],
 				});
 				try {
-					const newUser = await user.save();
+					await user.save();
+					console.log(`New member: ${member.username}`);
 				} catch (err) {
 					console.log(err.message);
 				}
-			} else {
-				console.log(member.username + ' exsists!');
 			}
 		})
 	);
-	return newUsersCount;
 };
 
 // goes through and updates the stats of each clan
@@ -113,11 +107,101 @@ router.put('/updateclans', async (req, res) => {
 			clans.map(async (clan) => {
 				const clanMemberApiData = await apiCheck(clan.name);
 				await updateUsers(clanMemberApiData);
-				// TODO: map through clanMemberApiData and update with their day gain, total lvl, total xp, and runescore
-				// then, set clan.members equal to clanMemberApiData I think
+
+				let totalClanXP = 0;
+				let totalClanTotalLevels = 0;
+				let totalClanRunescore = 0;
+
+				let totalClanXPActiveMembers = 0;
+				let totalClanTotalLevelsActiveMembers = 0;
+				let totalClanRunescoreActiveMembers = 0;
+
+				const updatedClanMembers = Promise.all(
+					clanMemberApiData.map(async (member) => {
+						try {
+							const user = await User.findOne({
+								username: member.username.toLowerCase().split(' ').join('+'),
+							});
+							member.totalLevel = +user.statRecords[0].stats[0][1] || 0;
+							member.totalXp = +user.statRecords[0].stats[0][2] || 0;
+							member.dayGain = user.statRecords[0].stats[0][3] || 0;
+							member.weekGain = user.statRecords[0].stats[0][4] || 0;
+							member.monthGain = user.statRecords[0].stats[0][5] || 0;
+							member.yearGain = user.statRecords[0].stats[0][6] || 0;
+							member.runeScore = +user.statRecords[0].stats[53][1] || 0;
+							member.runeScore = member.runeScore < 0 ? 0 : member.runeScore;
+
+							totalClanXP += member.totalXp;
+							totalClanTotalLevels += member.totalLevel;
+							totalClanRunescore += member.runeScore;
+
+							member.totalXp > 0 && totalClanXPActiveMembers++;
+							member.totalLevel > 0 && totalClanTotalLevelsActiveMembers++;
+							member.runeScore > 0 && totalClanRunescoreActiveMembers++;
+
+							// if (member.username.includes('zee')) {
+							// 	console.log(user.statRecords[0].stats);
+							// 	console.log(member);
+							// }
+						} catch (error) {
+							member.totalLevel = 0;
+							member.totalXp = 0;
+							member.dayGain = 0;
+							member.weekGain = 0;
+							member.monthGain = 0;
+							member.yearGain = 0;
+							member.runeScore = 0;
+							member.runeScore = 0;
+							return member;
+						}
+						return Promise.resolve(member);
+					})
+				);
+				updatedClanMembers.then(async (data) => {
+					const clanXPRecord = {
+						totalClanXP,
+						clanDayGain: data
+							.map((member) => member.dayGain || 0)
+							.reduce((a, b) => a + b, 0),
+						clanWeekGain: data
+							.map((member) => member.weekGain || 0)
+							.reduce((a, b) => a + b, 0),
+						clanMonthGain: data
+							.map((member) => member.monthGain || 0)
+							.reduce((a, b) => a + b, 0),
+						clanYearGain: data
+							.map((member) => member.yearGain || 0)
+							.reduce((a, b) => a + b, 0),
+						date: new Date(),
+					};
+
+					clan.xpRecords[0] = clanXPRecord;
+					clan.markModified('xpRecords');
+
+					clan.members = data;
+					clan.markModified('members');
+
+					clan.memberCount = data.length;
+					clan.averageMemberXP = Math.round(
+						totalClanXP / totalClanXPActiveMembers
+					);
+					clan.averageMemberTotalLevel = Math.round(
+						totalClanTotalLevels / totalClanTotalLevelsActiveMembers
+					);
+					clan.averageMemberRunescore = Math.round(
+						totalClanRunescore / totalClanRunescoreActiveMembers
+					);
+
+					try {
+						await clan.save();
+					} catch (err) {
+						console.log(err.message);
+					}
+				});
+				return updatedClanMembers;
 			})
 		).then(() => {
-			res.json({ message: 'Success' });
+			res.json({ message: 'Success', clans });
 		});
 	} catch (err) {
 		res.status(500).json({ message: err.message });

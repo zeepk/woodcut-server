@@ -9,14 +9,11 @@ const request = require('request');
 
 // check user against offical runescape hiscores
 const apiCheck = async (username) => {
-	console.log(`Checking RuneScape API for ${username}`);
 	const data = await fetch(
 		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
 	)
 		.then((res) => res.json())
 		.then((res) => {
-			console.log(`Finished checking RuneScape API for ${username}`);
-
 			return res.contents.split('\n').map((record) => record.split(','));
 		});
 	return data;
@@ -116,32 +113,45 @@ router.put('/updatetopten', async (req, res) => {
 		const endDateString = new Date();
 		const endDate = DateTime.fromISO(endDateString.toISOString());
 		const startDate = endDate.startOf('week');
-		console.log(startDate.toLocaleString(DateTime.DATETIME_MED));
-		console.log(new Date(startDate).toDateString());
 		const userPromises = users.map(async (user, index) => {
 			const data = await apiCheck(user.username.split(' ').join('+'));
 			// getting the date for the start of the week
 			// grab the record for the week start date, or the oldest record if the user is < 1 week old
-			const weekRecord =
+			let weekRecord =
 				user.statRecords.find(
 					(record) =>
 						new Date(record.date).toDateString() ===
 						new Date(startDate).toDateString()
 				) || user.statRecords[user.statRecords.length - 1];
+			if (weekRecord.stats.toString().includes('NaN')) {
+				weekRecord =
+					user.statRecords[user.statRecords.length - 2] ||
+					user.statRecords[user.statRecords.length - 1];
+			}
 			// same thing for the start of the month
-			const monthRecord =
+			let monthRecord =
 				user.statRecords.find(
 					(record) =>
 						new Date(record.date).toDateString() ===
 						new Date(startDate.startOf('month')).toDateString()
 				) || user.statRecords[user.statRecords.length - 1];
 			// and the start of the year
-			const yearRecord =
+			if (monthRecord.stats.toString().includes('NaN')) {
+				monthRecord =
+					user.statRecords[user.statRecords.length - 2] ||
+					user.statRecords[user.statRecords.length - 1];
+			}
+			let yearRecord =
 				user.statRecords.find(
 					(record) =>
 						new Date(record.date).toDateString() ===
 						new Date(startDate.startOf('year')).toDateString()
 				) || user.statRecords[user.statRecords.length - 1];
+			if (yearRecord.stats.toString().includes('NaN')) {
+				yearRecord =
+					user.statRecords[user.statRecords.length - 2] ||
+					user.statRecords[user.statRecords.length - 1];
+			}
 			// now go through and add all the deltas to the array of stats
 			for (var i = 0; i < data.length; i++) {
 				// get stat
@@ -168,7 +178,6 @@ router.put('/updatetopten', async (req, res) => {
 			user.statRecords[0].date = new Date();
 			user.markModified('statRecords');
 			const newUser = await user.save();
-			console.log(user.username);
 			return newUser;
 		});
 		Promise.all(userPromises)
@@ -549,14 +558,14 @@ router.patch('/:username', getUser, async (req, res) => {
 });
 
 // delete one user
-// router.delete('/:id', getUser, async (req, res) => {
-// 	try {
-// 		await res.user.remove();
-// 		res.json({ message: 'Deleted User' });
-// 	} catch (err) {
-// 		res.status(500).json({ message: err.message });
-// 	}
-// });
+router.delete('/:username', getUser, async (req, res) => {
+	try {
+		await res.user[0].remove();
+		res.json({ message: 'Deleted User' });
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+	}
+});
 
 // initialize a user
 router.post('/init', async (req, res) => {

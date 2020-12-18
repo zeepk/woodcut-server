@@ -11,8 +11,22 @@ const clanSchema = new mongoose.Schema({
 		required: true,
 		default: Date.now,
 	},
-	// get with call to CSV file
 	memberCount: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
+	averageMemberXP: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
+	averageMemberTotalLevel: {
+		type: Number,
+		required: true,
+		default: 0,
+	},
+	averageMemberRunescore: {
 		type: Number,
 		required: true,
 		default: 0,
@@ -21,31 +35,43 @@ const clanSchema = new mongoose.Schema({
 		{
 			username: {
 				type: String,
-				required: true,
+				required: false,
 			},
-			clanRank: {
+			rank: {
 				type: String,
-				required: true,
+				required: false,
 			},
 			clanXp: {
 				type: Number,
-				required: true,
+				required: false,
 			},
 			totalLevel: {
 				type: Number,
-				required: true,
+				required: false,
 			},
 			totalXp: {
 				type: Number,
-				required: true,
+				required: false,
 			},
 			dayGain: {
 				type: Number,
-				required: true,
+				required: false,
+			},
+			weekGain: {
+				type: Number,
+				required: false,
+			},
+			monthGain: {
+				type: Number,
+				required: false,
+			},
+			yearGain: {
+				type: Number,
+				required: false,
 			},
 			runeScore: {
 				type: Number,
-				required: true,
+				required: false,
 			},
 		},
 	],
@@ -53,6 +79,26 @@ const clanSchema = new mongoose.Schema({
 	xpRecords: [
 		{
 			totalClanXP: {
+				type: Number,
+				required: true,
+				default: 0,
+			},
+			clanDayGain: {
+				type: Number,
+				required: true,
+				default: 0,
+			},
+			clanWeekGain: {
+				type: Number,
+				required: true,
+				default: 0,
+			},
+			clanMonthGain: {
+				type: Number,
+				required: true,
+				default: 0,
+			},
+			clanYearGain: {
 				type: Number,
 				required: true,
 				default: 0,
