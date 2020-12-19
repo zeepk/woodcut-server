@@ -45,7 +45,6 @@ const apiCheck = async (clanName) => {
 
 // check user against offical runescape hiscores
 const userAPICheck = async (username) => {
-	console.log(`Checking RuneScape API for ${username}`);
 	const data = await fetch(
 		`${proxyurl}https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
 	)
@@ -58,7 +57,6 @@ const userAPICheck = async (username) => {
 
 // make sure all users are in the db
 const updateUsers = async (clanMembers) => {
-	console.log(`Updating ${clanMembers.length} members...`);
 	Promise.all(
 		clanMembers.map(async (member) => {
 			const user = await User.findOne({

@@ -13,12 +13,7 @@ const apiCheck = async (username) => {
 		`https://secure.runescape.com/m=hiscore/index_lite.ws?player=${username}`
 	)
 		.then((res) => res.text())
-		.then((res) => {
-			if (username.includes('readnip')) {
-				console.log(res);
-			}
-			return res.split('\n').map((record) => record.split(','));
-		});
+		.then((res) => res.split('\n').map((record) => record.split(',')));
 	return data;
 };
 
@@ -117,7 +112,13 @@ router.put('/updatetopten', async (req, res) => {
 		const endDate = DateTime.fromISO(endDateString.toISOString());
 		const startDate = endDate.startOf('week');
 		const userPromises = users.map(async (user, index) => {
-			const data = await apiCheck(user.username.split(' ').join('+'));
+			let data = await apiCheck(
+				user.username.toLowerCase().split(' ').join('+')
+			);
+			if (data.join().includes('something went wrong')) {
+				const nonUpdateUser = await user.save();
+				return nonUpdateUser;
+			}
 			// getting the date for the start of the week
 			// grab the record for the week start date, or the oldest record if the user is < 1 week old
 			let weekRecord =
@@ -169,10 +170,6 @@ router.put('/updatetopten', async (req, res) => {
 				stat[stat.length - 4] =
 					+data[i][data[i].length - 1] - +stat[stat.length - 5];
 				// update week
-				if (user.username.toLowerCase().includes('breadnip') && i === 0) {
-					console.log(+weekRecord.stats[i][weekRecord.stats[i].length - 5]);
-					console.log(+data[i][data[i].length - 1]);
-				}
 				stat[stat.length - 3] =
 					+data[i][data[i].length - 1] -
 					+weekRecord.stats[i][weekRecord.stats[i].length - 5];
@@ -196,6 +193,7 @@ router.put('/updatetopten', async (req, res) => {
 			})
 			.then(async () => {
 				const day = updatedUsers
+					.filter((user) => +user.statRecords[0].stats[0][4])
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][3] - a.statRecords[0].stats[0][3]
@@ -209,6 +207,7 @@ router.put('/updatetopten', async (req, res) => {
 					})
 					.slice(0, 10);
 				const week = updatedUsers
+					.filter((user) => +user.statRecords[0].stats[0][4])
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][4] - a.statRecords[0].stats[0][4]
@@ -222,6 +221,7 @@ router.put('/updatetopten', async (req, res) => {
 					})
 					.slice(0, 10);
 				const month = updatedUsers
+					.filter((user) => +user.statRecords[0].stats[0][4])
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][5] - a.statRecords[0].stats[0][5]
@@ -235,6 +235,7 @@ router.put('/updatetopten', async (req, res) => {
 					})
 					.slice(0, 10);
 				const year = updatedUsers
+					.filter((user) => +user.statRecords[0].stats[0][4])
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][6] - a.statRecords[0].stats[0][6]
