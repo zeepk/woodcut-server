@@ -19,6 +19,11 @@ const userSchema = new mongoose.Schema({
 		type: Date,
 		required: false,
 	},
+	isValid: {
+		type: Boolean,
+		required: true,
+		default: true,
+	},
 	statRecords: [
 		{
 			date: {

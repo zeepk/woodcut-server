@@ -116,6 +116,7 @@ router.put('/updatetopten', async (req, res) => {
 				user.username.toLowerCase().split(' ').join('+')
 			);
 			if (data.join().includes('something went wrong')) {
+				user.isValid = false;
 				const nonUpdateUser = await user.save();
 				return nonUpdateUser;
 			}
@@ -164,7 +165,8 @@ router.put('/updatetopten', async (req, res) => {
 				// get stat
 				const stat = user.statRecords[0].stats[i];
 				if (!stat) {
-					return null;
+					const newUser = await user.save();
+					return newUser;
 				}
 				// update day
 				stat[stat.length - 4] =
@@ -193,7 +195,7 @@ router.put('/updatetopten', async (req, res) => {
 			})
 			.then(async () => {
 				const day = updatedUsers
-					.filter((user) => +user.statRecords[0].stats[0][4])
+					.filter((user) => +user.statRecords[0].stats[0][4] && user.isValid)
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][3] - a.statRecords[0].stats[0][3]
@@ -207,7 +209,7 @@ router.put('/updatetopten', async (req, res) => {
 					})
 					.slice(0, 10);
 				const week = updatedUsers
-					.filter((user) => +user.statRecords[0].stats[0][4])
+					.filter((user) => +user.statRecords[0].stats[0][4] && user.isValid)
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][4] - a.statRecords[0].stats[0][4]
@@ -221,7 +223,7 @@ router.put('/updatetopten', async (req, res) => {
 					})
 					.slice(0, 10);
 				const month = updatedUsers
-					.filter((user) => +user.statRecords[0].stats[0][4])
+					.filter((user) => +user.statRecords[0].stats[0][4] && user.isValid)
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][5] - a.statRecords[0].stats[0][5]
@@ -235,7 +237,7 @@ router.put('/updatetopten', async (req, res) => {
 					})
 					.slice(0, 10);
 				const year = updatedUsers
-					.filter((user) => +user.statRecords[0].stats[0][4])
+					.filter((user) => +user.statRecords[0].stats[0][4] && user.isValid)
 					.sort(
 						(a, b) =>
 							b.statRecords[0].stats[0][6] - a.statRecords[0].stats[0][6]
@@ -256,7 +258,7 @@ router.put('/updatetopten', async (req, res) => {
 					year,
 				});
 				try {
-					const newTopTenList = await topTenList.save();
+					await topTenList.save();
 				} catch (err) {
 					console.log(err);
 				}
@@ -515,27 +517,37 @@ router.put('/massupdate', getUser, async (req, res) => {
 	User.find({}, function (err, users) {
 		for (const user in users) {
 			(async function () {
-				const data = await apiCheck(users[user].username.split(' ').join('+'));
-				for (var i = 0; i < data.length; i++) {
-					const stat = users[user].statRecords[0].stats[i];
-					stat[stat.length - 1] =
-						+data[i][data[i].length - 1] - +stat[stat.length - 2];
+				try {
+					const data = await apiCheck(
+						users[user].username.split(' ').join('+')
+					);
+					if (data.join().includes('something went wrong')) {
+						users[user].isValid = false;
+						users[user].statRecords.unshift(users[user].statRecords[0]);
+						users[user].lastUpdated = new Date();
+						users[user].markModified('statRecords');
+						await users[user].save();
+						return;
+					}
+					for (var i = 0; i < data.length; i++) {
+						const stat = users[user].statRecords[0].stats[i];
+						stat[stat.length - 1] =
+							+data[i][data[i].length - 1] - +stat[stat.length - 2];
+					}
+					users[user].statRecords[0].date = new Date();
+					for (const i in data) {
+						data[i].push(0);
+						data[i].push(0);
+						data[i].push(0);
+						data[i].push(0);
+					}
+					users[user].statRecords.unshift({ stats: data });
+					users[user].lastUpdated = new Date();
+					users[user].markModified('statRecords');
+					await users[user].save();
+				} catch (error) {
+					console.log(`error with user: ${users[user].username}`);
 				}
-				users[user].statRecords[0].date = new Date();
-				for (const i in data) {
-					data[i].push(0);
-					data[i].push(0);
-					data[i].push(0);
-					data[i].push(0);
-				}
-				console.log(users[user].lastUpdated.getHours());
-				users[user].statRecords.unshift({ stats: data });
-				console.log('New day addition for user: ' + users[user].username);
-				// }
-				users[user].lastUpdated = new Date();
-				usersUpdated.push('users[user].username');
-				users[user].markModified('statRecords');
-				const updatedUser = await users[user].save();
 			})();
 		}
 	});
